@@ -2,6 +2,7 @@ import os
 import json
 import urllib.parse
 import asyncio
+import threading
 from openai import OpenAI
 from flask import Flask, request, Response
 from telegram import Update
@@ -11,15 +12,11 @@ from telegram.ext import Application, CommandHandler, MessageHandler, filters, C
 BOT_TOKEN = "8888709197:AAHID3wJwsQiJqcQ7cemP31CKNSzkrP79wM"
 OPENAI_API_KEY = "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"
 
-# PORT hardcoded
 PORT = 10000
-
-# Webhook URL - غير ده لما تعرف domain بتاعك على Render
 WEBHOOK_HOST = "fashion-y26k.onrender.com"
 
 client = OpenAI(api_key=OPENAI_API_KEY)
 
-# Flask app
 app = Flask(__name__)
 
 # Telegram Application
@@ -171,22 +168,18 @@ def webhook():
     """يستقبل الـ updates من Telegram"""
     try:
         update_data = request.get_json(force=True)
-        print(f"📩 Received update: {update_data}")
+        print(f"📩 Received update: {json.dumps(update_data, ensure_ascii=False)[:200]}")
 
+        # ✅ الحل: نستخدم application.update_queue.put() بدل process_update()
         update = Update.de_json(update_data, application.bot)
-
-        # ✅ الحل: نستخدم asyncio.run() عشان نrun الـ async handler
-        asyncio.run(process_update(update))
+        application.update_queue.put_nowait(update)
 
         return Response('OK', status=200)
     except Exception as e:
-        print(f"❌ Error processing update: {e}")
+        print(f"❌ Error: {e}")
+        import traceback
+        traceback.print_exc()
         return Response('Error', status=500)
-
-
-async def process_update(update):
-    """بيتعامل مع الـ update بشكل async"""
-    await application.process_update(update)
 
 
 # -------------------------
@@ -199,8 +192,12 @@ def main():
     application.add_handler(CommandHandler("start", start))
     application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle))
 
-    # Initialize
-    application.initialize()
+    # ✅ الحل: نستخدم asyncio.run() عشان نinitialize الـ application
+    async def init_app():
+        await application.initialize()
+        await application.start()
+
+    asyncio.run(init_app())
 
     # Webhook URL
     webhook_path = f"/{BOT_TOKEN}"
