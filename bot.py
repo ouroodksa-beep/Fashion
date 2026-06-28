@@ -1,12 +1,13 @@
 import os
 import json
 import urllib.parse
+import asyncio
 from openai import OpenAI
 from flask import Flask, request, Response
 from telegram import Update
 from telegram.ext import Application, CommandHandler, MessageHandler, filters, ContextTypes
 
-# ⚠️ HARDCODED KEYS - مش آمن بس شغال
+# ⚠️ HARDCODED KEYS
 BOT_TOKEN = "8888709197:AAHID3wJwsQiJqcQ7cemP31CKNSzkrP79wM"
 OPENAI_API_KEY = "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"
 
@@ -14,8 +15,7 @@ OPENAI_API_KEY = "sk-proj-9ftnZNMy0Od7YZSf9lBSg7hQD_E-crpn_jqVO0Ewzf0JaM3comK4yD
 PORT = 10000
 
 # Webhook URL - غير ده لما تعرف domain بتاعك على Render
-# مثال: "your-bot-name.onrender.com"
-WEBHOOK_HOST = "https://fashion-y26k.onrender.com"
+WEBHOOK_HOST = "fashion-y26k.onrender.com"
 
 client = OpenAI(api_key=OPENAI_API_KEY)
 
@@ -169,9 +169,24 @@ def home():
 @app.route(f'/{BOT_TOKEN}', methods=['POST'])
 def webhook():
     """يستقبل الـ updates من Telegram"""
-    update = Update.de_json(request.get_json(force=True), application.bot)
-    application.process_update(update)
-    return Response('OK', status=200)
+    try:
+        update_data = request.get_json(force=True)
+        print(f"📩 Received update: {update_data}")
+
+        update = Update.de_json(update_data, application.bot)
+
+        # ✅ الحل: نستخدم asyncio.run() عشان نrun الـ async handler
+        asyncio.run(process_update(update))
+
+        return Response('OK', status=200)
+    except Exception as e:
+        print(f"❌ Error processing update: {e}")
+        return Response('Error', status=500)
+
+
+async def process_update(update):
+    """بيتعامل مع الـ update بشكل async"""
+    await application.process_update(update)
 
 
 # -------------------------
