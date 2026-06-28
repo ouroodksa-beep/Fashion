@@ -146,10 +146,9 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 # -------------------------
-# MAIN - الحل النهائي
+# MAIN - POLLING مع منع Conflict
 # -------------------------
-async def run_bot():
-    """الدالة الرئيسية اللي بتشغل البوت"""
+async def main():
     print("Smart Stylist - Shein Edition starting...")
 
     app = Application.builder().token(BOT_TOKEN).build()
@@ -157,24 +156,19 @@ async def run_bot():
     app.add_handler(CommandHandler("start", start))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle))
 
-    print("Running bot...")
     await app.initialize()
     await app.start()
-    await app.updater.start_polling(allowed_updates=Update.ALL_TYPES)
 
-    # نخلي البوت يشتغل للأبد
+    # ✅ الحل: نمسح الـ pending updates ونمنع الـ conflict
+    print("Starting polling with drop_pending_updates=True...")
+    await app.updater.start_polling(
+        allowed_updates=Update.ALL_TYPES,
+        drop_pending_updates=True  # ← ده بيمسح الـ updates القديمة
+    )
+
+    print("✅ Bot is running!")
     await asyncio.Event().wait()
 
 
-def main():
-    """نستخدم asyncio.run() يدوياً"""
-    try:
-        asyncio.run(run_bot())
-    except KeyboardInterrupt:
-        print("\nBot stopped by user")
-    except Exception as e:
-        print(f"Bot error: {e}")
-
-
 if __name__ == "__main__":
-    main()
+    asyncio.run(main())
