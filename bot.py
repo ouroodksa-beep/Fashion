@@ -1,16 +1,29 @@
 import os
-import asyncio
 import json
 import urllib.parse
 from openai import OpenAI
+from flask import Flask, request, Response
 from telegram import Update
 from telegram.ext import Application, CommandHandler, MessageHandler, filters, ContextTypes
 
-# ⚠️ HARDCODED KEYS
+# ⚠️ HARDCODED KEYS - مش آمن بس شغال
 BOT_TOKEN = "8888709197:AAHID3wJwsQiJqcQ7cemP31CKNSzkrP79wM"
 OPENAI_API_KEY = "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"
 
+# PORT hardcoded
+PORT = 10000
+
+# Webhook URL - غير ده لما تعرف domain بتاعك على Render
+# مثال: "your-bot-name.onrender.com"
+WEBHOOK_HOST = "https://fashion-y26k.onrender.com"
+
 client = OpenAI(api_key=OPENAI_API_KEY)
+
+# Flask app
+app = Flask(__name__)
+
+# Telegram Application
+application = Application.builder().token(BOT_TOKEN).build()
 
 
 # -------------------------
@@ -146,29 +159,47 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 # -------------------------
-# MAIN - POLLING مع منع Conflict
+# FLASK ROUTES
 # -------------------------
-async def main():
+@app.route('/')
+def home():
+    return "Smart Stylist Bot is running! ✅"
+
+
+@app.route(f'/{BOT_TOKEN}', methods=['POST'])
+def webhook():
+    """يستقبل الـ updates من Telegram"""
+    update = Update.de_json(request.get_json(force=True), application.bot)
+    application.process_update(update)
+    return Response('OK', status=200)
+
+
+# -------------------------
+# MAIN
+# -------------------------
+def main():
     print("Smart Stylist - Shein Edition starting...")
 
-    app = Application.builder().token(BOT_TOKEN).build()
+    # إضافة الـ handlers
+    application.add_handler(CommandHandler("start", start))
+    application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle))
 
-    app.add_handler(CommandHandler("start", start))
-    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle))
+    # Initialize
+    application.initialize()
 
-    await app.initialize()
-    await app.start()
+    # Webhook URL
+    webhook_path = f"/{BOT_TOKEN}"
+    webhook_url = f"https://{WEBHOOK_HOST}{webhook_path}"
 
-    # ✅ الحل: نمسح الـ pending updates ونمنع الـ conflict
-    print("Starting polling with drop_pending_updates=True...")
-    await app.updater.start_polling(
-        allowed_updates=Update.ALL_TYPES,
-        drop_pending_updates=True  # ← ده بيمسح الـ updates القديمة
-    )
+    print(f"Setting webhook: {webhook_url}")
 
-    print("✅ Bot is running!")
-    await asyncio.Event().wait()
+    # سجل الـ webhook
+    application.bot.set_webhook(url=webhook_url)
+
+    # تشغيل Flask server
+    print(f"✅ Server running on port {PORT}")
+    app.run(host='0.0.0.0', port=PORT)
 
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    main()
