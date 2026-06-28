@@ -2,10 +2,13 @@ import os
 import json
 import urllib.parse
 import asyncio
+import threading
 from openai import OpenAI
 from flask import Flask, request, Response
-from telegram import Update
+from telegram import Update, InputMediaPhoto
 from telegram.ext import Application, CommandHandler, MessageHandler, filters, ContextTypes
+import requests
+from bs4 import BeautifulSoup
 
 # ⚠️ HARDCODED KEYS
 BOT_TOKEN = "8888709197:AAHID3wJwsQiJqcQ7cemP31CKNSzkrP79wM"
@@ -23,33 +26,17 @@ application = Application.builder().token(BOT_TOKEN).build()
 
 
 # -------------------------
-# AI: تحليل نية المستخدم
+# AI: كتابة بوست جذاب
 # -------------------------
-def analyze_intent(user_text):
-    prompt = f"""You are a fashion/outfit coordinator AI for Shein e-commerce.
+def generate_caption(product_title, product_description=""):
+    prompt = f"""You are a professional fashion/marketing copywriter for social media.
 
-User wrote in Arabic: "{user_text}"
+Product: {product_title}
+Description: {product_description}
 
-Analyze what they want and return ONLY this JSON:
-{{
-  "category": "short category name in Arabic",
-  "pieces": [
-    {{"name": "piece name in Arabic", "search": "English search query for Shein", "emoji": "👗"}},
-    {{"name": "piece name in Arabic", "search": "English search query for Shein", "emoji": "👠"}},
-    {{"name": "piece name in Arabic", "search": "English search query for Shein", "emoji": "👜"}}
-  ]
-}}
+Write an attractive Arabic social media post about this product. Make it catchy, engaging, and persuasive. Use emojis. Include a call to action.
 
-Rules:
-- "فستان" or "dress" → dress + shoes + bag (3 pieces)
-- "أطفال" or "kids" → outfit set + shoes + accessory (3 pieces)
-- "ديكور" or "decor" → 3-4 matching decor items
-- "مطبخ" or "kitchen" → 3-4 matching kitchen items
-- "رجالي" or "men" → shirt + pants + shoes + watch (4 pieces)
-- "رياضي" or "sport" → sport outfit + shoes + bag (3 pieces)
-- "شنط" or "bags" → handbag + wallet + belt (3 pieces)
-- "حذاء" or "shoes" → shoes + socks + shoe care (3 pieces)
-- Always 3-4 pieces that MATCH in style/color
+Return ONLY the post text, nothing else.
 """
 
     try:
@@ -57,67 +44,60 @@ Rules:
             model="gpt-4.1-mini",
             messages=[{"role": "user", "content": prompt}]
         )
-        content = res.choices[0].message.content.strip()
-        content = content.replace("```json", "").replace("```", "").strip()
-        return json.loads(content)
+        return res.choices[0].message.content.strip()
     except Exception as e:
-        print(f"Intent error: {e}")
-        return {
-            "category": user_text,
-            "pieces": [
-                {"name": "فستان", "search": "women dress", "emoji": "👗"},
-                {"name": "حذاء", "search": "women shoes", "emoji": "👠"},
-                {"name": "شنطة", "search": "women bag", "emoji": "👜"}
-            ]
+        print(f"Caption error: {e}")
+        return f"✨ {product_title}\n\nمتوفر الآن على Shein!\n\n#fashion #style #shein"
+
+
+# -------------------------
+# استخراج بيانات المنتج من Shein
+# -------------------------
+def extract_shein_data(url):
+    """يستخرج صورة وعنوان المنتج من رابط Shein"""
+    try:
+        headers = {
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
         }
+        response = requests.get(url, headers=headers, timeout=15)
+        soup = BeautifulSoup(response.text, 'html.parser')
 
+        # استخراج العنوان
+        title = ""
+        title_tag = soup.find('h1', class_='product-intro__head-name') or \
+                   soup.find('h1', {'data-selenium': 'product-title'}) or \
+                   soup.find('title')
+        if title_tag:
+            title = title_tag.get_text().strip()
 
-# -------------------------
-# بناء رابط Shein
-# -------------------------
-def build_shein_link(query):
-    encoded = urllib.parse.quote(query)
-    return f"https://www.shein.com/search?keyword={encoded}"
+        # استخراج الصورة
+        image_url = ""
+        img_tag = soup.find('img', class_='product-intro__main-image') or \
+                 soup.find('img', {'data-selenium': 'product-image'}) or \
+                 soup.find('meta', property='og:image')
+        
+        if img_tag:
+            if img_tag.name == 'meta':
+                image_url = img_tag.get('content', '')
+            else:
+                image_url = img_tag.get('src', '') or img_tag.get('data-src', '')
 
+        # لو مفيش صورة، نستخدم صورة افتراضية
+        if not image_url:
+            image_url = "https://img.ltwebstatic.com/images3_pi/2021/04/09/1617973305e8b6c0db1f9e8c1e5c1e5c1e5c1e5c1e.webp"
 
-# -------------------------
-# بناء التنسيق
-# -------------------------
-def build_outfit(intent_data):
-    pieces = intent_data["pieces"]
-    outfit = []
-
-    for piece in pieces:
-        link = build_shein_link(piece["search"])
-        outfit.append({
-            "name": piece["name"],
-            "emoji": piece["emoji"],
-            "search": piece["search"],
-            "shein_link": link
-        })
-
-    return outfit
-
-
-# -------------------------
-# صياغة الرد
-# -------------------------
-def format_outfit(outfit, category):
-    text = f"✨ تنسيق كامل من Shein - {category}\n\n"
-
-    for item in outfit:
-        text += f"{item['emoji']} {item['name']}\n"
-        text += f"🔍 بحث Shein: {item['search']}\n"
-        text += f"🔗 [افتح Shein]({item['shein_link']})\n"
-        text += "\n" + "─" * 25 + "\n\n"
-
-    text += "💡 *نصائح للتنسيق:*\n"
-    text += "• اختار نفس درجة اللون في كل القطع\n"
-    text += "• الفستان الطويل يبقى مع كعب عالي\n"
-    text += "• الشنطة تكون بنفس لون الحذاء\n\n"
-    text += "🛍️ اضغط على أي رابط واشتري مباشرة من Shein!"
-
-    return text
+        return {
+            "title": title or "منتج Shein",
+            "image": image_url,
+            "url": url
+        }
+    except Exception as e:
+        print(f"Extract error: {e}")
+        return {
+            "title": "منتج Shein",
+            "image": "https://img.ltwebstatic.com/images3_pi/2021/04/09/1617973305e8b6c0db1f9e8c1e5c1e5c1e5c1e5c1e.webp",
+            "url": url
+        }
 
 
 # -------------------------
@@ -143,10 +123,19 @@ def webhook():
 
             print(f"💬 Message from {chat_id}: {text}")
 
-            if text == "/start":
-                asyncio.run(send_start_message(chat_id))
-            else:
-                asyncio.run(process_message(chat_id, text))
+            # ✅ لو الرسالة فيها لينك Shein
+            if "shein.com" in text or "shein" in text.lower():
+                thread = threading.Thread(
+                    target=process_shein_link_sync,
+                    args=(chat_id, text)
+                )
+                thread.start()
+            elif text == "/start":
+                thread = threading.Thread(
+                    target=process_start_sync,
+                    args=(chat_id,)
+                )
+                thread.start()
 
         return Response('OK', status=200)
     except Exception as e:
@@ -156,45 +145,90 @@ def webhook():
         return Response('Error', status=500)
 
 
+def process_start_sync(chat_id):
+    """بيبعت رسالة البداية"""
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+    try:
+        loop.run_until_complete(send_start_message(chat_id))
+    finally:
+        loop.close()
+
+
+def process_shein_link_sync(chat_id, text):
+    """بيتعامل مع لينك Shein"""
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+    try:
+        loop.run_until_complete(process_shein_link(chat_id, text))
+    finally:
+        loop.close()
+
+
 async def send_start_message(chat_id):
     """بيبعت رسالة البداية"""
     await application.bot.send_message(
         chat_id=chat_id,
         text="👗 *Smart Stylist - Shein Edition* ✨\n\n"
-             "اكتب أي حاجة وأنا هجهزلك تنسيق كامل من Shein:\n\n"
-             "👗 *فستان سهرة* → فستان + كعب + شنطة\n"
-             "👶 *طقم أطفال* → طقم + حذاء + إكسسوار\n"
-             "🛋️ *ديكور صالة* → سجادة + إضاءة + وسائد\n"
-             "👔 *رجالي* → قميص + بنطلون + حذاء\n"
-             "🏃 *رياضي* → طقم رياضي + حذاء + شنطة\n"
-             "🍳 *مطبخ* → منظمات + أدوات + تخزين\n\n"
-             "🛒 *كل الروابط بتوديك مباشرة على Shein!*",
+             "ابعتلي لينك أي قطعة من Shein وأنا هجهزلك:\n"
+             "📸 صورة المنتج\n"
+             "✍️ بوست جذاب\n"
+             "🔗 رابط المنتج\n\n"
+             "جرب دلوقتي!",
         parse_mode="Markdown"
     )
 
 
-async def process_message(chat_id, text):
-    """بيبعت تنسيق كامل"""
+async def process_shein_link(chat_id, text):
+    """بيبعت صورة + بوست + رابط"""
+    # استخراج الرابط من الرسالة
+    import re
+    urls = re.findall(r'http[s]?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\\(\\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+', text)
+    
+    if not urls:
+        await application.bot.send_message(
+            chat_id=chat_id,
+            text="❌ مفيش لينك صحيح. ابعت لينك من Shein."
+        )
+        return
+
+    url = urls[0]
+    print(f"🔗 Processing URL: {url}")
+
+    # استخراج بيانات المنتج
     await application.bot.send_message(
         chat_id=chat_id,
-        text="🧠 بجهزلك تنسيق كامل من Shein..."
+        text="⏳ بجيب بيانات المنتج..."
     )
 
-    intent = analyze_intent(text)
-    print(f"📝 User: {text} → {intent['category']}")
+    product_data = extract_shein_data(url)
 
-    outfit = build_outfit(intent)
-    result = format_outfit(outfit, intent["category"])
+    # كتابة البوست
+    caption = generate_caption(product_data["title"])
 
-    if len(result) > 4000:
-        result = result[:4000] + "\n\n..."
+    # تجميع الرسالة النهائية
+    final_text = f"{caption}\n\n🔗 [اشتري دلوقتي]({url})"
 
-    await application.bot.send_message(
-        chat_id=chat_id,
-        text=result,
-        parse_mode="Markdown",
-        disable_web_page_preview=True
-    )
+    print(f"📸 Image: {product_data['image']}")
+    print(f"✍️ Caption: {caption[:100]}...")
+
+    # إرسال الصورة مع النص
+    try:
+        await application.bot.send_photo(
+            chat_id=chat_id,
+            photo=product_data["image"],
+            caption=final_text,
+            parse_mode="Markdown"
+        )
+    except Exception as e:
+        print(f"Photo send error: {e}")
+        # لو الصورة مبعتتش، نبعت النص بس
+        await application.bot.send_message(
+            chat_id=chat_id,
+            text=final_text,
+            parse_mode="Markdown",
+            disable_web_page_preview=False
+        )
 
 
 # -------------------------
@@ -203,27 +237,26 @@ async def process_message(chat_id, text):
 def main():
     print("Smart Stylist - Shein Edition starting...")
 
-    asyncio.run(init_app())
+    # Initialize
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+    loop.run_until_complete(application.initialize())
+    loop.close()
 
+    # Webhook URL
     webhook_path = f"/{BOT_TOKEN}"
     webhook_url = f"https://{WEBHOOK_HOST}{webhook_path}"
 
     print(f"Setting webhook: {webhook_url}")
 
-    asyncio.run(set_webhook(webhook_url))
+    # سجل الـ webhook
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+    loop.run_until_complete(application.bot.set_webhook(url=webhook_url))
+    loop.close()
 
     print(f"✅ Server running on port {PORT}")
     app.run(host='0.0.0.0', port=PORT)
-
-
-async def init_app():
-    """Initialize التطبيق"""
-    await application.initialize()
-
-
-async def set_webhook(url):
-    """سجل الـ webhook"""
-    await application.bot.set_webhook(url=url)
 
 
 if __name__ == "__main__":
