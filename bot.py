@@ -14,7 +14,7 @@ client = OpenAI(api_key=OPENAI_API_KEY)
 
 
 # -------------------------
-# AI: تحليل نية المستخدم + بناء التنسيق
+# AI: تحليل نية المستخدم
 # -------------------------
 def analyze_intent(user_text):
     prompt = f"""You are a fashion/outfit coordinator AI for Shein e-commerce.
@@ -41,49 +41,6 @@ Rules:
 - "شنط" or "bags" → handbag + wallet + belt (3 pieces)
 - "حذاء" or "shoes" → shoes + socks + shoe care (3 pieces)
 - Always 3-4 pieces that MATCH in style/color
-- Make search queries specific with Shein keywords
-
-Example "فساتين سهرة":
-{{
-  "category": "فساتين سهرة",
-  "pieces": [
-    {{"name": "فستان سهرة", "search": "women evening party dress elegant", "emoji": "👗"}},
-    {{"name": "حذاء كعب", "search": "women high heels stiletto", "emoji": "👠"}},
-    {{"name": "شنطة سهرة", "search": "women evening clutch bag", "emoji": "👜"}}
-  ]
-}}
-
-Example "طقم أطفال":
-{{
-  "category": "طقم أطفال",
-  "pieces": [
-    {{"name": "طقم أطفال", "search": "kids casual outfit set", "emoji": "👕"}},
-    {{"name": "حذاء أطفال", "search": "kids sneakers casual", "emoji": "👟"}},
-    {{"name": "طاقية أطفال", "search": "kids baseball cap", "emoji": "🧢"}}
-  ]
-}}
-
-Example "ديكور صالة":
-{{
-  "category": "ديكور صالة",
-  "pieces": [
-    {{"name": "سجادة", "search": "living room carpet", "emoji": "🧶"}},
-    {{"name": "إضاءة", "search": "modern floor lamp", "emoji": "💡"}},
-    {{"name": "وسائد ديكور", "search": "decorative throw pillows", "emoji": "🛋️"}},
-    {{"name": "طاولة قهوة", "search": "modern coffee table", "emoji": "☕"}}
-  ]
-}}
-
-Example "مطبخ منظم":
-{{
-  "category": "مطبخ منظم",
-  "pieces": [
-    {{"name": "منظم توابل", "search": "kitchen spice organizer", "emoji": "🧂"}},
-    {{"name": "حامل أدوات", "search": "kitchen utensil holder", "emoji": "🍳"}},
-    {{"name": "علب تخزين", "search": "food storage containers", "emoji": "🫙"}},
-    {{"name": "منشفة مطبخ", "search": "kitchen towels set", "emoji": "🧽"}}
-  ]
-}}
 """
 
     try:
@@ -110,13 +67,12 @@ Example "مطبخ منظم":
 # بناء رابط Shein
 # -------------------------
 def build_shein_link(query):
-    """يبني رابط بحث على Shein"""
     encoded = urllib.parse.quote(query)
     return f"https://www.shein.com/search?keyword={encoded}"
 
 
 # -------------------------
-# بناء التنسيق الكامل
+# بناء التنسيق
 # -------------------------
 def build_outfit(intent_data):
     pieces = intent_data["pieces"]
@@ -140,10 +96,10 @@ def build_outfit(intent_data):
 def format_outfit(outfit, category):
     text = f"✨ تنسيق كامل من Shein - {category}\n\n"
 
-    for i, item in enumerate(outfit, 1):
+    for item in outfit:
         text += f"{item['emoji']} {item['name']}\n"
         text += f"🔍 بحث Shein: {item['search']}\n"
-        text += f"🔗 [افتح Shein وشوف النتائج]({item['shein_link']})\n"
+        text += f"🔗 [افتح Shein]({item['shein_link']})\n"
         text += "\n" + "─" * 25 + "\n\n"
 
     text += "💡 *نصائح للتنسيق:*\n"
@@ -156,27 +112,21 @@ def format_outfit(outfit, category):
 
 
 # -------------------------
-# HANDLER
+# HANDLERS
 # -------------------------
 async def handle(update: Update, context: ContextTypes.DEFAULT_TYPE):
     text = update.message.text
     await update.message.reply_text("🧠 بجهزلك تنسيق كامل من Shein...")
 
-    # 1. حلل نية المستخدم
     intent = analyze_intent(text)
     print(f"📝 User: {text} → {intent['category']}")
 
-    # 2. بناء التنسيق
     outfit = build_outfit(intent)
-
-    # 3. صياغة الرد
     result = format_outfit(outfit, intent["category"])
 
-    # Telegram limit
     if len(result) > 4000:
         result = result[:4000] + "\n\n..."
 
-    # Markdown mode for links
     await update.message.reply_text(result, parse_mode="Markdown", disable_web_page_preview=True)
 
 
@@ -196,14 +146,21 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 # -------------------------
-# RUN
+# MAIN - الحل الجديد
 # -------------------------
 def main():
+    print("Smart Stylist - Shein Edition starting...")
+
+    # بناء الـ Application
     app = Application.builder().token(BOT_TOKEN).build()
+
+    # إضافة الـ handlers
     app.add_handler(CommandHandler("start", start))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle))
-    print("Smart Stylist - Shein Edition running...")
-    app.run_polling()
+
+    # ✅ الحل: نستخدم run_polling مع asyncio
+    print("Running bot...")
+    app.run_polling(allowed_updates=Update.ALL_TYPES)
 
 
 if __name__ == "__main__":
