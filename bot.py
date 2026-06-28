@@ -1,92 +1,89 @@
 import os
 import asyncio
+import json
+import urllib.parse
 from openai import OpenAI
-from playwright.async_api import async_playwright
 from telegram import Update
 from telegram.ext import Application, CommandHandler, MessageHandler, filters, ContextTypes
 
-BOT_TOKEN = os.getenv("8888709197:AAHID3wJwsQiJqcQ7cemP31CKNSzkrP79wM")
-OPENAI_API_KEY = os.getenv("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")
+# ⚠️ HARDCODED KEYS
+BOT_TOKEN = "8888709197:AAHID3wJwsQiJqcQ7cemP31CKNSzkrP79wM"
+OPENAI_API_KEY = "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"
 
 client = OpenAI(api_key=OPENAI_API_KEY)
 
 
 # -------------------------
-# SEARCH CATEGORY MAP
+# AI: تحليل نية المستخدم + بناء التنسيق
 # -------------------------
-CATEGORIES = {
-    "فساتين": "women dress elegant outfit",
-    "اطفال": "kids outfit set cute fashion",
-    "مطبخ": "kitchen decor organizer aesthetic",
-    "ديكور": "living room decor modern aesthetic"
-}
+def analyze_intent(user_text):
+    prompt = f"""You are a fashion/outfit coordinator AI for Shein e-commerce.
 
+User wrote in Arabic: "{user_text}"
 
-# -------------------------
-# CLASSIFY USER INTENT
-# -------------------------
-def classify(text):
-    if "فساتين" in text:
-        return "فساتين"
-    elif "اطفال" in text:
-        return "اطفال"
-    elif "مطبخ" in text:
-        return "مطبخ"
-    elif "ديكور" in text:
-        return "ديكور"
-    return "فساتين"
+Analyze what they want and return ONLY this JSON:
+{{
+  "category": "short category name in Arabic",
+  "pieces": [
+    {{"name": "piece name in Arabic", "search": "English search query for Shein", "emoji": "👗"}},
+    {{"name": "piece name in Arabic", "search": "English search query for Shein", "emoji": "👠"}},
+    {{"name": "piece name in Arabic", "search": "English search query for Shein", "emoji": "👜"}}
+  ]
+}}
 
+Rules:
+- "فستان" or "dress" → dress + shoes + bag (3 pieces)
+- "أطفال" or "kids" → outfit set + shoes + accessory (3 pieces)
+- "ديكور" or "decor" → 3-4 matching decor items
+- "مطبخ" or "kitchen" → 3-4 matching kitchen items
+- "رجالي" or "men" → shirt + pants + shoes + watch (4 pieces)
+- "رياضي" or "sport" → sport outfit + shoes + bag (3 pieces)
+- "شنط" or "bags" → handbag + wallet + belt (3 pieces)
+- "حذاء" or "shoes" → shoes + socks + shoe care (3 pieces)
+- Always 3-4 pieces that MATCH in style/color
+- Make search queries specific with Shein keywords
 
-# -------------------------
-# SEARCH SHEIN
-# -------------------------
-async def search_shein(query):
-    results = []
+Example "فساتين سهرة":
+{{
+  "category": "فساتين سهرة",
+  "pieces": [
+    {{"name": "فستان سهرة", "search": "women evening party dress elegant", "emoji": "👗"}},
+    {{"name": "حذاء كعب", "search": "women high heels stiletto", "emoji": "👠"}},
+    {{"name": "شنطة سهرة", "search": "women evening clutch bag", "emoji": "👜"}}
+  ]
+}}
 
-    async with async_playwright() as p:
-        browser = await p.chromium.launch(headless=True)
-        page = await browser.new_page()
+Example "طقم أطفال":
+{{
+  "category": "طقم أطفال",
+  "pieces": [
+    {{"name": "طقم أطفال", "search": "kids casual outfit set", "emoji": "👕"}},
+    {{"name": "حذاء أطفال", "search": "kids sneakers casual", "emoji": "👟"}},
+    {{"name": "طاقية أطفال", "search": "kids baseball cap", "emoji": "🧢"}}
+  ]
+}}
 
-        await page.goto(f"https://www.shein.com/search?keyword={query}")
-        await page.wait_for_timeout(5000)
+Example "ديكور صالة":
+{{
+  "category": "ديكور صالة",
+  "pieces": [
+    {{"name": "سجادة", "search": "living room carpet", "emoji": "🧶"}},
+    {{"name": "إضاءة", "search": "modern floor lamp", "emoji": "💡"}},
+    {{"name": "وسائد ديكور", "search": "decorative throw pillows", "emoji": "🛋️"}},
+    {{"name": "طاولة قهوة", "search": "modern coffee table", "emoji": "☕"}}
+  ]
+}}
 
-        items = await page.query_selector_all(".S-product-item__wrapper")
-
-        for item in items[:25]:
-            try:
-                title = await item.inner_text()
-                link = await item.query_selector("a")
-                href = await link.get_attribute("href")
-
-                if href:
-                    results.append({
-                        "title": title.strip()[:120],
-                        "url": "https://www.shein.com" + href
-                    })
-            except:
-                continue
-
-        await browser.close()
-
-    return results
-
-
-# -------------------------
-# AI PRODUCT ANALYSIS (IMPORTANT PART)
-# -------------------------
-def analyze_product(product):
-    prompt = f"""
-You are a fashion classifier.
-
-Product: {product['title']}
-
-Return ONLY JSON:
-{
-  "type": "dress|shoes|bag|other",
-  "style": "casual|elegant|party|kids|home",
-  "color": "guess color",
-  "formality": 1-10
-}
+Example "مطبخ منظم":
+{{
+  "category": "مطبخ منظم",
+  "pieces": [
+    {{"name": "منظم توابل", "search": "kitchen spice organizer", "emoji": "🧂"}},
+    {{"name": "حامل أدوات", "search": "kitchen utensil holder", "emoji": "🍳"}},
+    {{"name": "علب تخزين", "search": "food storage containers", "emoji": "🫙"}},
+    {{"name": "منشفة مطبخ", "search": "kitchen towels set", "emoji": "🧽"}}
+  ]
+}}
 """
 
     try:
@@ -94,57 +91,66 @@ Return ONLY JSON:
             model="gpt-4.1-mini",
             messages=[{"role": "user", "content": prompt}]
         )
-
-        return eval(res.choices[0].message.content)
-    except:
+        content = res.choices[0].message.content.strip()
+        content = content.replace("```json", "").replace("```", "").strip()
+        return json.loads(content)
+    except Exception as e:
+        print(f"Intent error: {e}")
         return {
-            "type": "other",
-            "style": "casual",
-            "color": "unknown",
-            "formality": 5
+            "category": user_text,
+            "pieces": [
+                {"name": "فستان", "search": "women dress", "emoji": "👗"},
+                {"name": "حذاء", "search": "women shoes", "emoji": "👠"},
+                {"name": "شنطة", "search": "women bag", "emoji": "👜"}
+            ]
         }
 
 
 # -------------------------
-# BUILD SMART OUTFITS
+# بناء رابط Shein
 # -------------------------
-def build_smart_outfits(products):
-    analyzed = []
-
-    for p in products:
-        meta = analyze_product(p)
-        p.update(meta)
-        analyzed.append(p)
-
-    dresses = [p for p in analyzed if p["type"] == "dress"]
-    shoes = [p for p in analyzed if p["type"] == "shoes"]
-    bags = [p for p in analyzed if p["type"] == "bag"]
-
-    outfits = []
-
-    for i in range(min(5, len(dresses), len(shoes), len(bags))):
-        outfits.append([
-            dresses[i],
-            shoes[i],
-            bags[i]
-        ])
-
-    return outfits
+def build_shein_link(query):
+    """يبني رابط بحث على Shein"""
+    encoded = urllib.parse.quote(query)
+    return f"https://www.shein.com/search?keyword={encoded}"
 
 
 # -------------------------
-# FORMAT OUTPUT
+# بناء التنسيق الكامل
 # -------------------------
-def format_outfits(outfits, category):
-    text = f"✨ تنسيقات ذكية - {category}\n\n"
+def build_outfit(intent_data):
+    pieces = intent_data["pieces"]
+    outfit = []
 
-    for i, outfit in enumerate(outfits, 1):
-        text += f"👗 تنسيق {i}\n\n"
+    for piece in pieces:
+        link = build_shein_link(piece["search"])
+        outfit.append({
+            "name": piece["name"],
+            "emoji": piece["emoji"],
+            "search": piece["search"],
+            "shein_link": link
+        })
 
-        for item in outfit:
-            text += f"• {item['type']} - {item['title']}\n{item['url']}\n\n"
+    return outfit
 
-        text += "----------------------\n\n"
+
+# -------------------------
+# صياغة الرد
+# -------------------------
+def format_outfit(outfit, category):
+    text = f"✨ تنسيق كامل من Shein - {category}\n\n"
+
+    for i, item in enumerate(outfit, 1):
+        text += f"{item['emoji']} {item['name']}\n"
+        text += f"🔍 بحث Shein: {item['search']}\n"
+        text += f"🔗 [افتح Shein وشوف النتائج]({item['shein_link']})\n"
+        text += "\n" + "─" * 25 + "\n\n"
+
+    text += "💡 *نصائح للتنسيق:*\n"
+    text += "• اختار نفس درجة اللون في كل القطع\n"
+    text += "• الفستان الطويل يبقى مع كعب عالي\n"
+    text += "• الشنطة تكون بنفس لون الحذاء\n\n"
+    text += "🛍️ اضغط على أي رابط واشتري مباشرة من Shein!"
 
     return text
 
@@ -154,42 +160,49 @@ def format_outfits(outfits, category):
 # -------------------------
 async def handle(update: Update, context: ContextTypes.DEFAULT_TYPE):
     text = update.message.text
+    await update.message.reply_text("🧠 بجهزلك تنسيق كامل من Shein...")
 
-    await update.message.reply_text("🧠 بفهم الستايل وبعمل تنسيقات ذكية...")
+    # 1. حلل نية المستخدم
+    intent = analyze_intent(text)
+    print(f"📝 User: {text} → {intent['category']}")
 
-    category = classify(text)
-    query = CATEGORIES[category]
+    # 2. بناء التنسيق
+    outfit = build_outfit(intent)
 
-    products = await search_shein(query)
+    # 3. صياغة الرد
+    result = format_outfit(outfit, intent["category"])
 
-    if not products:
-        await update.message.reply_text("❌ مفيش نتائج")
-        return
+    # Telegram limit
+    if len(result) > 4000:
+        result = result[:4000] + "\n\n..."
 
-    outfits = build_smart_outfits(products)
-
-    result = format_outfits(outfits, category)
-
-    await update.message.reply_text(result)
+    # Markdown mode for links
+    await update.message.reply_text(result, parse_mode="Markdown", disable_web_page_preview=True)
 
 
-# -------------------------
-# START
-# -------------------------
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text("👗 ابعتي: فساتين / اطفال / مطبخ / ديكور")
+    await update.message.reply_text(
+        "👗 *Smart Stylist - Shein Edition* ✨\n\n"
+        "اكتب أي حاجة وأنا هجهزلك تنسيق كامل من Shein:\n\n"
+        "👗 *فستان سهرة* → فستان + كعب + شنطة\n"
+        "👶 *طقم أطفال* → طقم + حذاء + إكسسوار\n"
+        "🛋️ *ديكور صالة* → سجادة + إضاءة + وسائد\n"
+        "👔 *رجالي* → قميص + بنطلون + حذاء\n"
+        "🏃 *رياضي* → طقم رياضي + حذاء + شنطة\n"
+        "🍳 *مطبخ* → منظمات + أدوات + تخزين\n\n"
+        "🛒 *كل الروابط بتوديك مباشرة على Shein!*",
+        parse_mode="Markdown"
+    )
 
 
 # -------------------------
-# RUN (NO WEBHOOK)
+# RUN
 # -------------------------
 def main():
     app = Application.builder().token(BOT_TOKEN).build()
-
     app.add_handler(CommandHandler("start", start))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle))
-
-    print("Smart Stylist running...")
+    print("Smart Stylist - Shein Edition running...")
     app.run_polling()
 
 
