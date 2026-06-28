@@ -146,21 +146,34 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 # -------------------------
-# MAIN - الحل الجديد
+# MAIN - الحل النهائي
 # -------------------------
-def main():
+async def run_bot():
+    """الدالة الرئيسية اللي بتشغل البوت"""
     print("Smart Stylist - Shein Edition starting...")
 
-    # بناء الـ Application
     app = Application.builder().token(BOT_TOKEN).build()
 
-    # إضافة الـ handlers
     app.add_handler(CommandHandler("start", start))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle))
 
-    # ✅ الحل: نستخدم run_polling مع asyncio
     print("Running bot...")
-    app.run_polling(allowed_updates=Update.ALL_TYPES)
+    await app.initialize()
+    await app.start()
+    await app.updater.start_polling(allowed_updates=Update.ALL_TYPES)
+
+    # نخلي البوت يشتغل للأبد
+    await asyncio.Event().wait()
+
+
+def main():
+    """نستخدم asyncio.run() يدوياً"""
+    try:
+        asyncio.run(run_bot())
+    except KeyboardInterrupt:
+        print("\nBot stopped by user")
+    except Exception as e:
+        print(f"Bot error: {e}")
 
 
 if __name__ == "__main__":
