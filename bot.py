@@ -1,11 +1,11 @@
 import telebot
-import requests
-from bs4 import BeautifulSoup
 import re
 import time
 import json
 import random
 import os
+import asyncio
+from playwright.async_api import async_playwright
 
 TOKEN = "8888709197:AAHID3wJwsQiJqcQ7cemP31CKNSzkrP79wM"
 bot = telebot.TeleBot(TOKEN)
@@ -115,7 +115,6 @@ def translate_to_arabic(text):
 
 
 def smart_arabic_title(full_title):
-    """Translate title to Arabic without length limit"""
     full_title = protect_brands(full_title)
     arabic_title = translate_to_arabic(full_title)
     words = arabic_title.split()
@@ -133,233 +132,81 @@ def get_category_emoji(category):
     return emojis.get(category, "📦")
 
 
-def expand_url(url):
-    """Expand shortened SHEIN links (onelink.shein.com, etc.)"""
-    try:
-        if any(short in url.lower() for short in ['onelink.shein.com', 'bit.ly', 'tinyurl', 't.co', 'short.link']):
-            headers = {"User-Agent": "Mozilla/5.0"}
-            r = requests.get(url, headers=headers, allow_redirects=True, timeout=20)
-            return r.url
-        return url
-    except Exception as e:
-        print(f"expand_url error: {e}")
-        return url
-
-
 def is_shein_url(url):
-    """Check if URL is from SHEIN"""
     return "shein.com" in url.lower() or "onelink.shein.com" in url.lower()
 
 
-def extract_shein_product_id(url):
-    """Extract product ID from SHEIN URL"""
-    # Pattern: shein.com/...-p-12345678.html or shein.com/...-p-12345678-cat-...
-    match = re.search(r'-p-(\d+)', url, re.IGNORECASE)
-    if match:
-        return match.group(1)
-    # Pattern: shein.com/product/12345678
-    match = re.search(r'/product/(\d+)', url, re.IGNORECASE)
-    if match:
-        return match.group(1)
-    # Pattern: shein.com/.../12345678.html
-    match = re.search(r'/(\d{6,10})\.html', url, re.IGNORECASE)
-    if match:
-        return match.group(1)
-    return None
+async def get_shein_product_playwright(url):
+    """Scrape SHEIN using Playwright (real browser)"""
+    async with async_playwright() as p:
+        browser = await p.chromium.launch(headless=True)
+        context = await browser.new_context(
+            user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+            viewport={"width": 1920, "height": 1080},
+            locale="ar-SA",
+        )
+        page = await context.new_page()
 
-
-def get_shein_product(url):
-    """Scrape SHEIN product page - returns title, description, image, and original URL"""
-    user_agents = [
-        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36",
-        "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/121.0",
-        "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/118.0.0.0 Safari/537.36",
-        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/117.0.0.0 Safari/537.36 Edg/117.0.2045.47",
-    ]
-
-    for attempt, ua in enumerate(user_agents):
         try:
-            delay = (2 ** attempt) + random.uniform(0.5, 2.0)
-            if attempt > 0:
-                print(f"  Waiting {delay:.1f}s before retry...")
-                time.sleep(delay)
+            # Navigate to the product page
+            await page.goto(url, wait_until="networkidle", timeout=30000)
+            await page.wait_for_timeout(3000)  # Wait for JS to load
 
-            session = requests.Session()
-
-            headers = {
-                "User-Agent": ua,
-                "Accept-Language": "ar-SA,ar;q=0.9,en-US;q=0.8,en;q=0.7",
-                "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8",
-                "Accept-Encoding": "gzip, deflate, br",
-                "DNT": "1",
-                "Connection": "keep-alive",
-                "Upgrade-Insecure-Requests": "1",
-                "Cache-Control": "max-age=0",
-                "Referer": "https://www.google.com/",
-                "sec-ch-ua": '"Not_A Brand";v="8", "Chromium";v="120", "Google Chrome";v="120"',
-                "sec-ch-ua-mobile": "?0",
-                "sec-ch-ua-platform": '"Windows"',
-                "Sec-Fetch-Dest": "document",
-                "Sec-Fetch-Mode": "navigate",
-                "Sec-Fetch-Site": "cross-site",
-                "Sec-Fetch-User": "?1",
-                "Priority": "u=0, i",
-            }
-
-            proxies = {}
-            if PROXY_URL:
-                proxies = {"http": PROXY_URL, "https": PROXY_URL}
-
-            try:
-                session.get("https://www.shein.com/", headers=headers, timeout=10, proxies=proxies)
-                time.sleep(random.uniform(0.5, 1.5))
-            except:
-                pass
-
-            r = session.get(url, headers=headers, timeout=30, proxies=proxies)
-
-            print(f"Attempt {attempt + 1}: Status {r.status_code}, Length {len(r.text)}")
-
-            if r.status_code != 200:
-                continue
-            if len(r.text) < 3000:
-                print(f"  Content too short ({len(r.text)} chars)")
-                if "captcha" in r.text.lower():
-                    print("  CAPTCHA detected!")
-                continue
-
-            soup = BeautifulSoup(r.text, "html.parser")
+            # Get page content
+            content = await page.content()
+            from bs4 import BeautifulSoup
+            soup = BeautifulSoup(content, "html.parser")
 
             # ===== TITLE =====
             title = None
-            # Try Open Graph title
             og_title = soup.select_one('meta[property="og:title"]')
             if og_title:
                 title = og_title.get("content", "").strip()
-            # Try Twitter title
             if not title:
                 tw_title = soup.select_one('meta[name="twitter:title"]')
                 if tw_title:
                     title = tw_title.get("content", "").strip()
-            # Try product title from page
-            if not title:
-                title_elem = soup.select_one("h1.product-intro__title, h1.product-title, h1[itemprop='name'], .product-intro__title, .product-title")
-                if title_elem:
-                    title = title_elem.get_text(strip=True)
-            # Try JSON-LD
-            if not title:
-                json_ld = soup.select_one('script[type="application/ld+json"]')
-                if json_ld:
-                    try:
-                        data = json.loads(json_ld.string)
-                        if isinstance(data, dict):
-                            title = data.get('name', '')
-                        elif isinstance(data, list):
-                            for item in data:
-                                if isinstance(item, dict) and item.get('@type') == 'Product':
-                                    title = item.get('name', '')
-                                    break
-                    except:
-                        pass
-            # Try title tag
             if not title:
                 title_tag = soup.select_one("title")
                 if title_tag:
                     title = title_tag.get_text(strip=True)
-                    # Remove " | SHEIN" suffix
                     title = re.sub(r'\s*\|\s*SHEIN.*$', '', title, flags=re.IGNORECASE)
-
-            if not title:
-                print("  Title not found")
-                continue
 
             # ===== DESCRIPTION =====
             description = None
-            # Try Open Graph description
             og_desc = soup.select_one('meta[property="og:description"]')
             if og_desc:
                 description = og_desc.get("content", "").strip()
-            # Try Twitter description
-            if not description:
-                tw_desc = soup.select_one('meta[name="twitter:description"]')
-                if tw_desc:
-                    description = tw_desc.get("content", "").strip()
-            # Try meta description
             if not description:
                 meta_desc = soup.select_one('meta[name="description"]')
                 if meta_desc:
                     description = meta_desc.get("content", "").strip()
-            # Try product description from page
-            if not description:
-                desc_elem = soup.select_one(".product-intro__description, .product-description, [itemprop='description'], .product-desc")
-                if desc_elem:
-                    description = desc_elem.get_text(strip=True)
 
             # ===== IMAGE =====
             image = None
-            # Try Open Graph image
             og_image = soup.select_one('meta[property="og:image"]')
             if og_image:
                 image = og_image.get("content", "").strip()
-            # Try Twitter image
             if not image:
                 tw_image = soup.select_one('meta[name="twitter:image"]')
                 if tw_image:
                     image = tw_image.get("content", "").strip()
-            # Try product image from page
-            if not image:
-                img_elem = soup.select_one(".product-intro__main-img img, .product-image img, .main-image img, .product-intro__main-img")
-                if img_elem:
-                    image = img_elem.get("data-src") or img_elem.get("src") or img_elem.get("data-original")
-            # Try JSON-LD image
-            if not image:
-                json_ld = soup.select_one('script[type="application/ld+json"]')
-                if json_ld:
-                    try:
-                        data = json.loads(json_ld.string)
-                        if isinstance(data, dict):
-                            image = data.get('image', '')
-                        elif isinstance(data, list):
-                            for item in data:
-                                if isinstance(item, dict) and item.get('@type') == 'Product':
-                                    image = item.get('image', '')
-                                    break
-                    except:
-                        pass
-            # Try any large image on page
-            if not image:
-                all_imgs = soup.find_all("img")
-                for img in all_imgs:
-                    src = img.get("data-src") or img.get("src") or img.get("data-original")
-                    if src and ("product" in src.lower() or "goods" in src.lower() or "image" in src.lower()):
-                        image = src
-                        break
 
-            # Clean up image URL
             if image:
                 if image.startswith("//"):
                     image = "https:" + image
                 elif image.startswith("/"):
                     image = "https://www.shein.com" + image
 
-            # ===== RATING (optional - just for info) =====
+            # ===== RATING =====
             rating = None
             review_count = None
-            rating_elem = soup.select_one(".product-intro__rate-num, .rate-num, .product-rating, [itemprop='ratingValue']")
-            if rating_elem:
-                text = rating_elem.get_text(strip=True)
-                m = re.search(r'([\d.]+)', text)
-                if m:
-                    rating = m.group(1)
-            review_elem = soup.select_one(".product-intro__review-count, .review-count, [itemprop='reviewCount']")
-            if review_elem:
-                text = review_elem.get_text(strip=True)
-                m = re.search(r'([\d,]+)', text)
-                if m:
-                    review_count = m.group(1).replace(",", "")
 
-            # ===== SUCCESS =====
+            await browser.close()
+
+            if not title:
+                return None
+
             arabic_title = smart_arabic_title(title)
             print(f"  SUCCESS: '{arabic_title[:50]}...'")
 
@@ -373,45 +220,40 @@ def get_shein_product(url):
             }
 
         except Exception as e:
-            print(f"Attempt {attempt + 1} failed: {e}")
-            continue
+            print(f"Playwright error: {e}")
+            await browser.close()
+            return None
 
-    print("  All attempts failed")
-    return None
+
+def get_shein_product(url):
+    """Wrapper to run async Playwright from sync code"""
+    return asyncio.run(get_shein_product_playwright(url))
 
 
 def generate_post(product_data, original_url):
-    """Generate post - description + image + link only, NO prices"""
     name = product_data["name"]
-    full_title = product_data.get("full_title", name)
     description = product_data.get("description", "")
     rating = product_data.get("rating")
     review_count = product_data.get("review_count")
 
     category = detect_product_category(name)
-    gender = detect_product_gender(name)
     category_emoji = get_category_emoji(category)
 
     parts = []
     parts.append(f"{category_emoji} {name}")
 
-    # Add description if available
     if description and len(description) > 10:
-        # Clean up description - remove extra spaces and limit length
         desc_clean = re.sub(r'\s+', ' ', description).strip()
         if len(desc_clean) > 500:
             desc_clean = desc_clean[:497] + "..."
         parts.append(f"📝 {desc_clean}")
 
-    # Add rating if available
     if rating:
-        stars = "⭐" * int(float(rating))
         if review_count:
             parts.append(f"⭐ التقييم: {rating}/5 ({review_count} تقييم)")
         else:
             parts.append(f"⭐ التقييم: {rating}/5")
 
-    # Add link
     parts.append(f"🛒 رابط الشراء:
 {original_url}")
 
@@ -428,19 +270,16 @@ def handler(msg):
         return
 
     for original_url in urls:
-        print(f"\n{'='*50}")
+        print(f"\n{"="*50}")
         print(f"Processing: {original_url}")
 
-        expanded = expand_url(original_url)
-        print(f"Expanded: {expanded}")
-
-        if not is_shein_url(expanded):
+        if not is_shein_url(original_url):
             bot.reply_to(msg, "❌ الرابط يجب أن يكون من shein.com")
             continue
 
         wait = bot.reply_to(msg, "⏳ جاري تحليل المنتج وتجهيز المنشور...")
 
-        product = get_shein_product(expanded)
+        product = get_shein_product(original_url)
 
         if not product:
             bot.edit_message_text("❌ تعذر قراءة بيانات المنتج", msg.chat.id, wait.message_id)
@@ -455,7 +294,7 @@ def handler(msg):
                 bot.send_message(msg.chat.id, post, parse_mode="Markdown")
             bot.delete_message(msg.chat.id, wait.message_id)
         except Exception as e:
-            print(f"Error sending with image: {e}")
+            print(f"Error sending: {e}")
             try:
                 bot.send_message(msg.chat.id, post, parse_mode="Markdown")
                 bot.delete_message(msg.chat.id, wait.message_id)
