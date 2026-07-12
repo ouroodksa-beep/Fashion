@@ -7,7 +7,7 @@ import os
 import asyncio
 from playwright.async_api import async_playwright
 
-TOKEN = "8888709197:AAHID3wJwsQiJqcQ7cemP31CKNSzkrP79wM"
+TOKEN = "8888709197:AAGj8kbTPR-iZ-IpglhIh75lpWQhM7kZx7M"
 bot = telebot.TeleBot(TOKEN)
 
 GROQ_API_KEY = "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"
