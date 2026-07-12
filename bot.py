@@ -4,8 +4,8 @@ import time
 import json
 import random
 import os
-import asyncio
-from playwright.async_api import async_playwright
+import requests
+from bs4 import BeautifulSoup
 
 TOKEN = "8888709197:AAGj8kbTPR-iZ-IpglhIh75lpWQhM7kZx7M"
 bot = telebot.TeleBot(TOKEN)
@@ -136,24 +136,60 @@ def is_shein_url(url):
     return "shein.com" in url.lower() or "onelink.shein.com" in url.lower()
 
 
-async def get_shein_product_playwright(url):
-    async with async_playwright() as p:
-        browser = await p.chromium.launch(headless=True)
-        context = await browser.new_context(
-            user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-            viewport={"width": 1920, "height": 1080},
-            locale="ar-SA",
-        )
-        page = await context.new_page()
-        
+def get_shein_product(url):
+    user_agents = [
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36",
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/121.0",
+        "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/118.0.0.0 Safari/537.36",
+    ]
+    
+    for attempt, ua in enumerate(user_agents):
         try:
-            await page.goto(url, wait_until="networkidle", timeout=30000)
-            await page.wait_for_timeout(3000)
+            delay = (2 ** attempt) + random.uniform(0.5, 2.0)
+            if attempt > 0:
+                print(f"  Waiting {delay:.1f}s before retry...")
+                time.sleep(delay)
             
-            content = await page.content()
-            from bs4 import BeautifulSoup
-            soup = BeautifulSoup(content, "html.parser")
+            session = requests.Session()
             
+            headers = {
+                "User-Agent": ua,
+                "Accept-Language": "ar-SA,ar;q=0.9,en-US;q=0.8,en;q=0.7",
+                "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8",
+                "Accept-Encoding": "gzip, deflate, br",
+                "DNT": "1",
+                "Connection": "keep-alive",
+                "Upgrade-Insecure-Requests": "1",
+                "Cache-Control": "max-age=0",
+                "Referer": "https://www.google.com/",
+                "sec-ch-ua": "\"Not_A Brand\";v=\"8\", \"Chromium\";v=\"120\", \"Google Chrome\";v=\"120\"",
+                "sec-ch-ua-mobile": "?0",
+                "sec-ch-ua-platform": "\"Windows\"",
+                "Sec-Fetch-Dest": "document",
+                "Sec-Fetch-Mode": "navigate",
+                "Sec-Fetch-Site": "cross-site",
+                "Sec-Fetch-User": "?1",
+                "Priority": "u=0, i",
+            }
+            
+            proxies = {}
+            if PROXY_URL:
+                proxies = {"http": PROXY_URL, "https": PROXY_URL}
+            
+            r = session.get(url, headers=headers, timeout=15, proxies=proxies, allow_redirects=True)
+            
+            print(f"Attempt {attempt + 1}: Status {r.status_code}, Length {len(r.text)}")
+            
+            if r.status_code != 200:
+                continue
+            if len(r.text) < 3000:
+                print(f"  Content too short ({len(r.text)} chars)")
+                continue
+            
+            soup = BeautifulSoup(r.text, "html.parser")
+            
+            # ===== TITLE =====
             title = None
             og_title = soup.select_one('meta[property="og:title"]')
             if og_title:
@@ -168,6 +204,7 @@ async def get_shein_product_playwright(url):
                     title = title_tag.get_text(strip=True)
                     title = re.sub(r"\s*\|\s*SHEIN.*$", "", title, flags=re.IGNORECASE)
             
+            # ===== DESCRIPTION =====
             description = None
             og_desc = soup.select_one('meta[property="og:description"]')
             if og_desc:
@@ -177,6 +214,7 @@ async def get_shein_product_playwright(url):
                 if meta_desc:
                     description = meta_desc.get("content", "").strip()
             
+            # ===== IMAGE =====
             image = None
             og_image = soup.select_one('meta[property="og:image"]')
             if og_image:
@@ -192,14 +230,10 @@ async def get_shein_product_playwright(url):
                 elif image.startswith("/"):
                     image = "https://www.shein.com" + image
             
-            rating = None
-            review_count = None
-            
-            await browser.close()
-            
             if not title:
-                return None
-                
+                print("  Title not found")
+                continue
+            
             arabic_title = smart_arabic_title(title)
             print(f"  SUCCESS: '{arabic_title[:50]}...'")
             
@@ -208,25 +242,19 @@ async def get_shein_product_playwright(url):
                 "full_title": title,
                 "description": description,
                 "image": image,
-                "rating": rating,
-                "review_count": review_count,
             }
             
         except Exception as e:
-            print(f"Playwright error: {e}")
-            await browser.close()
-            return None
-
-
-def get_shein_product(url):
-    return asyncio.run(get_shein_product_playwright(url))
+            print(f"Attempt {attempt + 1} failed: {e}")
+            continue
+    
+    print("  All attempts failed")
+    return None
 
 
 def generate_post(product_data, original_url):
     name = product_data["name"]
     description = product_data.get("description", "")
-    rating = product_data.get("rating")
-    review_count = product_data.get("review_count")
     
     category = detect_product_category(name)
     category_emoji = get_category_emoji(category)
@@ -239,12 +267,6 @@ def generate_post(product_data, original_url):
         if len(desc_clean) > 500:
             desc_clean = desc_clean[:497] + "..."
         parts.append("📝 " + desc_clean)
-    
-    if rating:
-        if review_count:
-            parts.append("⭐ التقييم: " + rating + "/5 (" + review_count + " تقييم)")
-        else:
-            parts.append("⭐ التقييم: " + rating + "/5")
     
     parts.append("🛒 رابط الشراء:")
     parts.append(original_url)
