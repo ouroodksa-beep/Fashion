@@ -1,4 +1,4 @@
 telebot
-requests
-beautifulsoup4
 flask
+playwright
+beautifulsoup4
