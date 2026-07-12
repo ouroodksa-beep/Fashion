@@ -39,15 +39,15 @@ def detect_product_category(product_name):
 
 def detect_product_gender(product_name):
     name_lower = product_name.lower()
-    women_indicators = ['women', 'woman', 'ladies', 'lady', 'female', 'feminine', 'نسائي', 'نساء', 'نسا', 'سيدات', 'سيدة', 'انثى', 'انثوي', 'dress', 'skirt', 'فستان', 'تنورة', 'بلايز', 'فساتين', 'makeup', 'lipstick', 'شامبو', 'بلسم', 'كريم', 'عطر نسائي', 'عطر للنساء']
-    men_indicators = ['men', 'man', 'male', 'masculine', 'gents', 'gentlemen', 'رجالي', 'رجال', 'رجل', 'ذكر', 'ذكوري', 'رجولة', 'عطر رجالي', 'عطر للرجال']
+    women_indicators = ["women", "woman", "ladies", "lady", "female", "feminine", "نسائي", "نساء", "نسا", "سيدات", "سيدة", "انثى", "انثوي", "dress", "skirt", "فستان", "تنورة", "بلايز", "فساتين", "makeup", "lipstick", "شامبو", "بلسم", "كريم", "عطر نسائي", "عطر للنساء"]
+    men_indicators = ["men", "man", "male", "masculine", "gents", "gentlemen", "رجالي", "رجال", "رجل", "ذكر", "ذكوري", "رجولة", "عطر رجالي", "عطر للرجال"]
     for indicator in women_indicators:
         if indicator in name_lower:
-            return 'women'
+            return "women"
     for indicator in men_indicators:
         if indicator in name_lower:
-            return 'men'
-    return 'neutral'
+            return "men"
+    return "neutral"
 
 
 TRANSLATION_DICT = {
@@ -104,13 +104,13 @@ def translate_to_arabic(text):
     words = text_lower.split()
     translated_words = []
     for word in words:
-        clean_word = re.sub(r'[^\w\s]', '', word)
+        clean_word = re.sub(r"[^\w\s]", "", word)
         if clean_word in TRANSLATION_DICT:
             translated_words.append(TRANSLATION_DICT[clean_word])
         else:
             translated_words.append(word)
     result = " ".join(translated_words)
-    result = re.sub(r'\b(\w+)\s+\1\b', r'\1', result)
+    result = re.sub(r"\b(\w+)\s+\1\b", r"\1", result)
     return result
 
 
@@ -137,7 +137,6 @@ def is_shein_url(url):
 
 
 async def get_shein_product_playwright(url):
-    """Scrape SHEIN using Playwright (real browser)"""
     async with async_playwright() as p:
         browser = await p.chromium.launch(headless=True)
         context = await browser.new_context(
@@ -146,18 +145,15 @@ async def get_shein_product_playwright(url):
             locale="ar-SA",
         )
         page = await context.new_page()
-
+        
         try:
-            # Navigate to the product page
             await page.goto(url, wait_until="networkidle", timeout=30000)
-            await page.wait_for_timeout(3000)  # Wait for JS to load
-
-            # Get page content
+            await page.wait_for_timeout(3000)
+            
             content = await page.content()
             from bs4 import BeautifulSoup
             soup = BeautifulSoup(content, "html.parser")
-
-            # ===== TITLE =====
+            
             title = None
             og_title = soup.select_one('meta[property="og:title"]')
             if og_title:
@@ -170,9 +166,8 @@ async def get_shein_product_playwright(url):
                 title_tag = soup.select_one("title")
                 if title_tag:
                     title = title_tag.get_text(strip=True)
-                    title = re.sub(r'\s*\|\s*SHEIN.*$', '', title, flags=re.IGNORECASE)
-
-            # ===== DESCRIPTION =====
+                    title = re.sub(r"\s*\|\s*SHEIN.*$", "", title, flags=re.IGNORECASE)
+            
             description = None
             og_desc = soup.select_one('meta[property="og:description"]')
             if og_desc:
@@ -181,8 +176,7 @@ async def get_shein_product_playwright(url):
                 meta_desc = soup.select_one('meta[name="description"]')
                 if meta_desc:
                     description = meta_desc.get("content", "").strip()
-
-            # ===== IMAGE =====
+            
             image = None
             og_image = soup.select_one('meta[property="og:image"]')
             if og_image:
@@ -191,25 +185,24 @@ async def get_shein_product_playwright(url):
                 tw_image = soup.select_one('meta[name="twitter:image"]')
                 if tw_image:
                     image = tw_image.get("content", "").strip()
-
+            
             if image:
                 if image.startswith("//"):
                     image = "https:" + image
                 elif image.startswith("/"):
                     image = "https://www.shein.com" + image
-
-            # ===== RATING =====
+            
             rating = None
             review_count = None
-
+            
             await browser.close()
-
+            
             if not title:
                 return None
-
+                
             arabic_title = smart_arabic_title(title)
             print(f"  SUCCESS: '{arabic_title[:50]}...'")
-
+            
             return {
                 "name": arabic_title,
                 "full_title": title,
@@ -218,7 +211,7 @@ async def get_shein_product_playwright(url):
                 "rating": rating,
                 "review_count": review_count,
             }
-
+            
         except Exception as e:
             print(f"Playwright error: {e}")
             await browser.close()
@@ -226,7 +219,6 @@ async def get_shein_product_playwright(url):
 
 
 def get_shein_product(url):
-    """Wrapper to run async Playwright from sync code"""
     return asyncio.run(get_shein_product_playwright(url))
 
 
@@ -235,58 +227,58 @@ def generate_post(product_data, original_url):
     description = product_data.get("description", "")
     rating = product_data.get("rating")
     review_count = product_data.get("review_count")
-
+    
     category = detect_product_category(name)
     category_emoji = get_category_emoji(category)
-
+    
     parts = []
-    parts.append(f"{category_emoji} {name}")
-
+    parts.append(category_emoji + " " + name)
+    
     if description and len(description) > 10:
-        desc_clean = re.sub(r'\s+', ' ', description).strip()
+        desc_clean = re.sub(r"\s+", " ", description).strip()
         if len(desc_clean) > 500:
             desc_clean = desc_clean[:497] + "..."
-        parts.append(f"📝 {desc_clean}")
-
+        parts.append("📝 " + desc_clean)
+    
     if rating:
         if review_count:
-            parts.append(f"⭐ التقييم: {rating}/5 ({review_count} تقييم)")
+            parts.append("⭐ التقييم: " + rating + "/5 (" + review_count + " تقييم)")
         else:
-            parts.append(f"⭐ التقييم: {rating}/5")
-
-    parts.append(f"🛒 رابط الشراء:
-{original_url}")
-
+            parts.append("⭐ التقييم: " + rating + "/5")
+    
+    parts.append("🛒 رابط الشراء:")
+    parts.append(original_url)
+    
     return "\n\n".join(parts)
 
 
 @bot.message_handler(func=lambda m: True)
 def handler(msg):
     text = msg.text.strip()
-    urls = re.findall(r'https?://\S+', text)
-
+    urls = re.findall(r"https?://\S+", text)
+    
     if not urls:
         bot.reply_to(msg, "❌ يرجى إرسال رابط المنتج من شي إن")
         return
-
+    
     for original_url in urls:
-        print(f"\n{"="*50}")
+        print("\n" + "="*50)
         print(f"Processing: {original_url}")
-
+        
         if not is_shein_url(original_url):
             bot.reply_to(msg, "❌ الرابط يجب أن يكون من shein.com")
             continue
-
+        
         wait = bot.reply_to(msg, "⏳ جاري تحليل المنتج وتجهيز المنشور...")
-
+        
         product = get_shein_product(original_url)
-
+        
         if not product:
             bot.edit_message_text("❌ تعذر قراءة بيانات المنتج", msg.chat.id, wait.message_id)
             continue
-
+        
         post = generate_post(product, original_url)
-
+        
         try:
             if product["image"]:
                 bot.send_photo(msg.chat.id, product["image"], caption=post, parse_mode="Markdown")
@@ -303,7 +295,6 @@ def handler(msg):
                 bot.edit_message_text("❌ حدث خطأ في الإرسال", msg.chat.id, wait.message_id)
 
 
-# ============ WEBHOOK SERVER ============
 from flask import Flask, request
 
 app = Flask(__name__)
@@ -313,19 +304,19 @@ WEBHOOK_PORT = int(os.environ.get("PORT", 10000))
 WEBHOOK_URL_BASE = f"https://{WEBHOOK_HOST}" if WEBHOOK_HOST else None
 WEBHOOK_URL_PATH = f"/webhook/{TOKEN}"
 
-@app.route('/')
+@app.route("/")
 def index():
     return "🤖 البوت يعمل — شي إن ديلز 🔥"
 
-@app.route(WEBHOOK_URL_PATH, methods=['POST'])
+@app.route(WEBHOOK_URL_PATH, methods=["POST"])
 def webhook():
-    if request.headers.get('content-type') == 'application/json':
-        json_string = request.get_data().decode('utf-8')
+    if request.headers.get("content-type") == "application/json":
+        json_string = request.get_data().decode("utf-8")
         update = telebot.types.Update.de_json(json_string)
         bot.process_new_updates([update])
-        return ''
+        return ""
     else:
-        return 'Unsupported Media Type', 415
+        return "Unsupported Media Type", 415
 
 def start_webhook():
     if WEBHOOK_HOST:
@@ -335,8 +326,8 @@ def start_webhook():
         print(f"✅ Webhook set to: {WEBHOOK_URL_BASE}{WEBHOOK_URL_PATH}")
     else:
         print("⚠️ RENDER_EXTERNAL_HOSTNAME not set, running in local mode...")
+    
+    app.run(host="0.0.0.0", port=WEBHOOK_PORT)
 
-    app.run(host='0.0.0.0', port=WEBHOOK_PORT)
-
-if __name__ == '__main__':
+if __name__ == "__main__":
     start_webhook()
