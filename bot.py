@@ -1,263 +1,503 @@
-import os
-import json
-import urllib.parse
-import asyncio
-import threading
-from openai import OpenAI
-from flask import Flask, request, Response
-from telegram import Update, InputMediaPhoto
-from telegram.ext import Application, CommandHandler, MessageHandler, filters, ContextTypes
+import telebot
 import requests
 from bs4 import BeautifulSoup
+import re
+import time
+import json
+import random
+import os
 
-# ⚠️ HARDCODED KEYS
-BOT_TOKEN = "8888709197:AAHID3wJwsQiJqcQ7cemP31CKNSzkrP79wM"
-OPENAI_API_KEY = "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"
+TOKEN = "8888709197:AAHID3wJwsQiJqcQ7cemP31CKNSzkrP79wM"
+bot = telebot.TeleBot(TOKEN)
 
-PORT = 10000
-WEBHOOK_HOST = "fashion-y26k.onrender.com"
+GROQ_API_KEY = "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"
 
-client = OpenAI(api_key=OPENAI_API_KEY)
+PROXY_URL = os.environ.get("PROXY_URL")
+
+
+def protect_brands(text):
+    return text
+
+
+CATEGORY_KEYWORDS = {
+    "electronics": ["phone", "iphone", "samsung", "laptop", "computer", "tablet", "ipad", "airpods", "headphones", "camera", "tv", "screen", "monitor", "keyboard", "mouse", "charger", "cable", "power bank", "battery", "smart watch", "watch", "speaker", "router", "modem", "electronic", "digital", "هاتف", "آيفون", "لابتوب", "كمبيوتر", "تابلت", "سماعات", "شاحن", "كيبل", "بطارية", "شاشة", "كاميرا", "تلفزيون", "راوتر", "ساعة ذكية", "إلكتروني"],
+    "fashion": ["shirt", "t-shirt", "pants", "jeans", "jacket", "hoodie", "dress", "skirt", "socks", "shoes", "sneakers", "boots", "sandals", "slippers", "cap", "hat", "bag", "backpack", "wallet", "belt", "tie", "scarf", "gloves", "clothing", "apparel", "wear", "fashion", "قميص", "تيشيرت", "بنطلون", "جاكيت", "فستان", "تنورة", "حذاء", "شنطة", "حقيبة", "محفظة", "حزام", "كاب", "ملابس", "أزياء"],
+    "beauty": ["perfume", "fragrance", "oud", "musk", "cream", "lotion", "shampoo", "conditioner", "soap", "makeup", "lipstick", "foundation", "mascara", "eyeliner", "brush", "cosmetic", "skincare", "haircare", "عطر", "عود", "مسك", "كريم", "شامبو", "بلسم", "صابون", "مكياج", "أحمر شفاه", "عناية", "جمال", "تجميل"],
+    "home": ["refrigerator", "fridge", "washing machine", "vacuum cleaner", "air conditioner", "ac", "heater", "fan", "blender", "mixer", "oven", "microwave", "toaster", "kettle", "coffee maker", "iron", "hair dryer", "chair", "table", "desk", "bed", "sofa", "couch", "lamp", "light", "mirror", "carpet", "curtain", "furniture", "kitchen", "home", "house", "ثلاجة", "غسالة", "مكنسة", "مكيف", "دفاية", "مروحة", "خلاط", "فرن", "مايكرويف", "غلاية", "كرسي", "طاولة", "سرير", "كنبة", "لمبة", "سجادة", "أثاث", "مطبخ", "منزل"],
+    "sports": ["treadmill", "dumbbell", "yoga mat", "bicycle", "ball", "gym", "fitness", "exercise", "workout", "sport", "running", "walking", "training", "sneakers", "shoes", "رياضة", "جيم", "لياقة", "تمارين", "سير", "دامبل", "يوغا", "دراجة", "كرة", "جري", "مشي", "تدريب"]
+}
+
+
+def detect_product_category(product_name):
+    name_lower = product_name.lower()
+    for category, keywords in CATEGORY_KEYWORDS.items():
+        for keyword in keywords:
+            if keyword in name_lower:
+                return category
+    return "general"
+
+
+def detect_product_gender(product_name):
+    name_lower = product_name.lower()
+    women_indicators = ['women', 'woman', 'ladies', 'lady', 'female', 'feminine', 'نسائي', 'نساء', 'نسا', 'سيدات', 'سيدة', 'انثى', 'انثوي', 'dress', 'skirt', 'فستان', 'تنورة', 'بلايز', 'فساتين', 'makeup', 'lipstick', 'شامبو', 'بلسم', 'كريم', 'عطر نسائي', 'عطر للنساء']
+    men_indicators = ['men', 'man', 'male', 'masculine', 'gents', 'gentlemen', 'رجالي', 'رجال', 'رجل', 'ذكر', 'ذكوري', 'رجولة', 'عطر رجالي', 'عطر للرجال']
+    for indicator in women_indicators:
+        if indicator in name_lower:
+            return 'women'
+    for indicator in men_indicators:
+        if indicator in name_lower:
+            return 'men'
+    return 'neutral'
+
+
+TRANSLATION_DICT = {
+    "laptop": "لابتوب", "tablet": "تابلت", "keyboard": "كيبورد", "mouse": "ماوس",
+    "charger": "شاحن", "cable": "كيبل", "power bank": "باور بانك", "battery": "بطارية",
+    "screen": "شاشة", "monitor": "شاشة عرض", "camera": "كاميرا", "speaker": "سماعة",
+    "watch": "ساعة", "smartwatch": "ساعة ذكية", "headphones": "سماعات رأس",
+    "router": "راوتر", "modem": "مودم", "tv": "تلفزيون", "television": "تلفزيون",
+    "shoes": "حذاء", "shoe": "حذاء", "sneakers": "حذاء رياضي", "boots": "بوت",
+    "sandals": "صندل", "slippers": "شبشب", "t-shirt": "تيشيرت", "shirt": "قميص",
+    "pants": "بنطلون", "jeans": "جينز", "jacket": "جاكيت", "hoodie": "هودي",
+    "dress": "فستان", "skirt": "تنورة", "socks": "شرابات", "cap": "كاب",
+    "hat": "قبعة", "bag": "شنطة", "backpack": "حقيبة ظهر", "wallet": "محفظة",
+    "belt": "حزام", "scarf": "وشاح", "gloves": "قفازات",
+    "perfume": "عطر", "fragrance": "عطر", "oud": "عود", "musk": "مسك",
+    "cream": "كريم", "lotion": "لوشن", "shampoo": "شامبو", "conditioner": "بلسم", "soap": "صابون",
+    "refrigerator": "ثلاجة", "fridge": "ثلاجة", "washing machine": "غسالة",
+    "vacuum cleaner": "مكنسة كهربائية", "air conditioner": "مكيف", "ac": "مكيف",
+    "heater": "دفاية", "fan": "مروحة", "blender": "خلاط", "mixer": "عجانة",
+    "oven": "فرن", "microwave": "مايكرويف", "toaster": "محمصة", "kettle": "غلاية",
+    "coffee maker": "ماكينة قهوة", "iron": "مكواة", "hair dryer": "سشوار",
+    "chair": "كرسي", "table": "طاولة", "desk": "مكتب", "bed": "سرير",
+    "sofa": "كنبة", "couch": "كنبة", "lamp": "لمبة", "light": "إضاءة",
+    "mirror": "مرآة", "carpet": "سجادة", "curtain": "ستارة",
+    "treadmill": "سير كهربائي", "dumbbell": "دامبل", "yoga mat": "حصيرة يوغا",
+    "bicycle": "دراجة", "ball": "كرة", "toys": "ألعاب", "toy": "لعبة",
+    "baby": "أطفال", "kids": "أطفال",
+    "wireless": "لاسلكي", "bluetooth": "بلوتوث", "smart": "ذكي", "digital": "رقمي",
+    "electric": "كهربائي", "automatic": "أوتوماتيك", "portable": "محمول",
+    "professional": "احترافي", "original": "أصلي", "new": "جديد",
+    "pro": "برو", "max": "ماكس", "plus": "بلس", "ultra": "ألترا", "mini": "ميني",
+    "premium": "بريميوم", "deluxe": "ديلوكس", "unisex": "للجنسين", "adult": "للبالغين",
+    "men": "رجالي", "women": "نسائي",
+    "black": "أسود", "white": "أبيض", "blue": "أزرق", "red": "أحمر", "green": "أخضر",
+    "capsule": "كبسولة", "capsules": "كبسولات", "machine": "ماكينة", "maker": "صانع",
+    "espresso": "إسبريسو", "coffee": "قهوة", "cafe": "كافيه",
+    "preparation": "تحضير", "prepare": "تحضير",
+    "anti": "مضاد", "anti-hair loss": "مضاد تساقط", "hair loss": "تساقط الشعر",
+    "stimulating": "منشط", "stimulator": "منشط", "fortifying": "يقوي",
+    "serum": "سيروم", "repair": "ترميم", "damaged": "تالف", "split ends": "نهايات متقصفة",
+    "protection": "حماية", "heat": "حرارة", "spray": "بخاخ", "fixative": "مثبت",
+    "keratin": "كيراتين", "smooth": "سموث", "touch": "ريتاتش", "retouch": "ريتاتش",
+    "night": "نايت", "eau de toilette": "أو دي تواليت", "edt": "أو دي تواليت",
+    "eau de parfum": "أو دي بارفان", "edp": "أو دي بارفان", "perfume": "عطر",
+    "for men": "للرجال", "for women": "للنساء", "unisex": "للجنسين",
+    "swiss": "سويسرية", "arabian": "عربية", "oriental": "شرقية",
+    "honey": "هوني", "treasures": "تريجرز",
+}
+
+
+def translate_to_arabic(text):
+    text = protect_brands(text)
+    text_lower = text.lower()
+    words = text_lower.split()
+    translated_words = []
+    for word in words:
+        clean_word = re.sub(r'[^\w\s]', '', word)
+        if clean_word in TRANSLATION_DICT:
+            translated_words.append(TRANSLATION_DICT[clean_word])
+        else:
+            translated_words.append(word)
+    result = " ".join(translated_words)
+    result = re.sub(r'\b(\w+)\s+\1\b', r'\1', result)
+    return result
+
+
+def smart_arabic_title(full_title):
+    """Translate title to Arabic without length limit"""
+    full_title = protect_brands(full_title)
+    arabic_title = translate_to_arabic(full_title)
+    words = arabic_title.split()
+    unique_words = []
+    for word in words:
+        if not unique_words or word.lower() != unique_words[-1].lower():
+            unique_words.append(word)
+    result = " ".join(unique_words)
+    result = protect_brands(result)
+    return result.strip()
+
+
+def get_category_emoji(category):
+    emojis = {"electronics": "📱", "fashion": "👕", "beauty": "💄", "home": "🏠", "sports": "💪"}
+    return emojis.get(category, "📦")
+
+
+def expand_url(url):
+    """Expand shortened SHEIN links (onelink.shein.com, etc.)"""
+    try:
+        if any(short in url.lower() for short in ['onelink.shein.com', 'bit.ly', 'tinyurl', 't.co', 'short.link']):
+            headers = {"User-Agent": "Mozilla/5.0"}
+            r = requests.get(url, headers=headers, allow_redirects=True, timeout=20)
+            return r.url
+        return url
+    except Exception as e:
+        print(f"expand_url error: {e}")
+        return url
+
+
+def is_shein_url(url):
+    """Check if URL is from SHEIN"""
+    return "shein.com" in url.lower() or "onelink.shein.com" in url.lower()
+
+
+def extract_shein_product_id(url):
+    """Extract product ID from SHEIN URL"""
+    # Pattern: shein.com/...-p-12345678.html or shein.com/...-p-12345678-cat-...
+    match = re.search(r'-p-(\d+)', url, re.IGNORECASE)
+    if match:
+        return match.group(1)
+    # Pattern: shein.com/product/12345678
+    match = re.search(r'/product/(\d+)', url, re.IGNORECASE)
+    if match:
+        return match.group(1)
+    # Pattern: shein.com/.../12345678.html
+    match = re.search(r'/(\d{6,10})\.html', url, re.IGNORECASE)
+    if match:
+        return match.group(1)
+    return None
+
+
+def get_shein_product(url):
+    """Scrape SHEIN product page - returns title, description, image, and original URL"""
+    user_agents = [
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36",
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/121.0",
+        "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/118.0.0.0 Safari/537.36",
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/117.0.0.0 Safari/537.36 Edg/117.0.2045.47",
+    ]
+
+    for attempt, ua in enumerate(user_agents):
+        try:
+            delay = (2 ** attempt) + random.uniform(0.5, 2.0)
+            if attempt > 0:
+                print(f"  Waiting {delay:.1f}s before retry...")
+                time.sleep(delay)
+
+            session = requests.Session()
+
+            headers = {
+                "User-Agent": ua,
+                "Accept-Language": "ar-SA,ar;q=0.9,en-US;q=0.8,en;q=0.7",
+                "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8",
+                "Accept-Encoding": "gzip, deflate, br",
+                "DNT": "1",
+                "Connection": "keep-alive",
+                "Upgrade-Insecure-Requests": "1",
+                "Cache-Control": "max-age=0",
+                "Referer": "https://www.google.com/",
+                "sec-ch-ua": '"Not_A Brand";v="8", "Chromium";v="120", "Google Chrome";v="120"',
+                "sec-ch-ua-mobile": "?0",
+                "sec-ch-ua-platform": '"Windows"',
+                "Sec-Fetch-Dest": "document",
+                "Sec-Fetch-Mode": "navigate",
+                "Sec-Fetch-Site": "cross-site",
+                "Sec-Fetch-User": "?1",
+                "Priority": "u=0, i",
+            }
+
+            proxies = {}
+            if PROXY_URL:
+                proxies = {"http": PROXY_URL, "https": PROXY_URL}
+
+            try:
+                session.get("https://www.shein.com/", headers=headers, timeout=10, proxies=proxies)
+                time.sleep(random.uniform(0.5, 1.5))
+            except:
+                pass
+
+            r = session.get(url, headers=headers, timeout=30, proxies=proxies)
+
+            print(f"Attempt {attempt + 1}: Status {r.status_code}, Length {len(r.text)}")
+
+            if r.status_code != 200:
+                continue
+            if len(r.text) < 3000:
+                print(f"  Content too short ({len(r.text)} chars)")
+                if "captcha" in r.text.lower():
+                    print("  CAPTCHA detected!")
+                continue
+
+            soup = BeautifulSoup(r.text, "html.parser")
+
+            # ===== TITLE =====
+            title = None
+            # Try Open Graph title
+            og_title = soup.select_one('meta[property="og:title"]')
+            if og_title:
+                title = og_title.get("content", "").strip()
+            # Try Twitter title
+            if not title:
+                tw_title = soup.select_one('meta[name="twitter:title"]')
+                if tw_title:
+                    title = tw_title.get("content", "").strip()
+            # Try product title from page
+            if not title:
+                title_elem = soup.select_one("h1.product-intro__title, h1.product-title, h1[itemprop='name'], .product-intro__title, .product-title")
+                if title_elem:
+                    title = title_elem.get_text(strip=True)
+            # Try JSON-LD
+            if not title:
+                json_ld = soup.select_one('script[type="application/ld+json"]')
+                if json_ld:
+                    try:
+                        data = json.loads(json_ld.string)
+                        if isinstance(data, dict):
+                            title = data.get('name', '')
+                        elif isinstance(data, list):
+                            for item in data:
+                                if isinstance(item, dict) and item.get('@type') == 'Product':
+                                    title = item.get('name', '')
+                                    break
+                    except:
+                        pass
+            # Try title tag
+            if not title:
+                title_tag = soup.select_one("title")
+                if title_tag:
+                    title = title_tag.get_text(strip=True)
+                    # Remove " | SHEIN" suffix
+                    title = re.sub(r'\s*\|\s*SHEIN.*$', '', title, flags=re.IGNORECASE)
+
+            if not title:
+                print("  Title not found")
+                continue
+
+            # ===== DESCRIPTION =====
+            description = None
+            # Try Open Graph description
+            og_desc = soup.select_one('meta[property="og:description"]')
+            if og_desc:
+                description = og_desc.get("content", "").strip()
+            # Try Twitter description
+            if not description:
+                tw_desc = soup.select_one('meta[name="twitter:description"]')
+                if tw_desc:
+                    description = tw_desc.get("content", "").strip()
+            # Try meta description
+            if not description:
+                meta_desc = soup.select_one('meta[name="description"]')
+                if meta_desc:
+                    description = meta_desc.get("content", "").strip()
+            # Try product description from page
+            if not description:
+                desc_elem = soup.select_one(".product-intro__description, .product-description, [itemprop='description'], .product-desc")
+                if desc_elem:
+                    description = desc_elem.get_text(strip=True)
+
+            # ===== IMAGE =====
+            image = None
+            # Try Open Graph image
+            og_image = soup.select_one('meta[property="og:image"]')
+            if og_image:
+                image = og_image.get("content", "").strip()
+            # Try Twitter image
+            if not image:
+                tw_image = soup.select_one('meta[name="twitter:image"]')
+                if tw_image:
+                    image = tw_image.get("content", "").strip()
+            # Try product image from page
+            if not image:
+                img_elem = soup.select_one(".product-intro__main-img img, .product-image img, .main-image img, .product-intro__main-img")
+                if img_elem:
+                    image = img_elem.get("data-src") or img_elem.get("src") or img_elem.get("data-original")
+            # Try JSON-LD image
+            if not image:
+                json_ld = soup.select_one('script[type="application/ld+json"]')
+                if json_ld:
+                    try:
+                        data = json.loads(json_ld.string)
+                        if isinstance(data, dict):
+                            image = data.get('image', '')
+                        elif isinstance(data, list):
+                            for item in data:
+                                if isinstance(item, dict) and item.get('@type') == 'Product':
+                                    image = item.get('image', '')
+                                    break
+                    except:
+                        pass
+            # Try any large image on page
+            if not image:
+                all_imgs = soup.find_all("img")
+                for img in all_imgs:
+                    src = img.get("data-src") or img.get("src") or img.get("data-original")
+                    if src and ("product" in src.lower() or "goods" in src.lower() or "image" in src.lower()):
+                        image = src
+                        break
+
+            # Clean up image URL
+            if image:
+                if image.startswith("//"):
+                    image = "https:" + image
+                elif image.startswith("/"):
+                    image = "https://www.shein.com" + image
+
+            # ===== RATING (optional - just for info) =====
+            rating = None
+            review_count = None
+            rating_elem = soup.select_one(".product-intro__rate-num, .rate-num, .product-rating, [itemprop='ratingValue']")
+            if rating_elem:
+                text = rating_elem.get_text(strip=True)
+                m = re.search(r'([\d.]+)', text)
+                if m:
+                    rating = m.group(1)
+            review_elem = soup.select_one(".product-intro__review-count, .review-count, [itemprop='reviewCount']")
+            if review_elem:
+                text = review_elem.get_text(strip=True)
+                m = re.search(r'([\d,]+)', text)
+                if m:
+                    review_count = m.group(1).replace(",", "")
+
+            # ===== SUCCESS =====
+            arabic_title = smart_arabic_title(title)
+            print(f"  SUCCESS: '{arabic_title[:50]}...'")
+
+            return {
+                "name": arabic_title,
+                "full_title": title,
+                "description": description,
+                "image": image,
+                "rating": rating,
+                "review_count": review_count,
+            }
+
+        except Exception as e:
+            print(f"Attempt {attempt + 1} failed: {e}")
+            continue
+
+    print("  All attempts failed")
+    return None
+
+
+def generate_post(product_data, original_url):
+    """Generate post - description + image + link only, NO prices"""
+    name = product_data["name"]
+    full_title = product_data.get("full_title", name)
+    description = product_data.get("description", "")
+    rating = product_data.get("rating")
+    review_count = product_data.get("review_count")
+
+    category = detect_product_category(name)
+    gender = detect_product_gender(name)
+    category_emoji = get_category_emoji(category)
+
+    parts = []
+    parts.append(f"{category_emoji} {name}")
+
+    # Add description if available
+    if description and len(description) > 10:
+        # Clean up description - remove extra spaces and limit length
+        desc_clean = re.sub(r'\s+', ' ', description).strip()
+        if len(desc_clean) > 500:
+            desc_clean = desc_clean[:497] + "..."
+        parts.append(f"📝 {desc_clean}")
+
+    # Add rating if available
+    if rating:
+        stars = "⭐" * int(float(rating))
+        if review_count:
+            parts.append(f"⭐ التقييم: {rating}/5 ({review_count} تقييم)")
+        else:
+            parts.append(f"⭐ التقييم: {rating}/5")
+
+    # Add link
+    parts.append(f"🛒 رابط الشراء:
+{original_url}")
+
+    return "\n\n".join(parts)
+
+
+@bot.message_handler(func=lambda m: True)
+def handler(msg):
+    text = msg.text.strip()
+    urls = re.findall(r'https?://\S+', text)
+
+    if not urls:
+        bot.reply_to(msg, "❌ يرجى إرسال رابط المنتج من شي إن")
+        return
+
+    for original_url in urls:
+        print(f"\n{'='*50}")
+        print(f"Processing: {original_url}")
+
+        expanded = expand_url(original_url)
+        print(f"Expanded: {expanded}")
+
+        if not is_shein_url(expanded):
+            bot.reply_to(msg, "❌ الرابط يجب أن يكون من shein.com")
+            continue
+
+        wait = bot.reply_to(msg, "⏳ جاري تحليل المنتج وتجهيز المنشور...")
+
+        product = get_shein_product(expanded)
+
+        if not product:
+            bot.edit_message_text("❌ تعذر قراءة بيانات المنتج", msg.chat.id, wait.message_id)
+            continue
+
+        post = generate_post(product, original_url)
+
+        try:
+            if product["image"]:
+                bot.send_photo(msg.chat.id, product["image"], caption=post, parse_mode="Markdown")
+            else:
+                bot.send_message(msg.chat.id, post, parse_mode="Markdown")
+            bot.delete_message(msg.chat.id, wait.message_id)
+        except Exception as e:
+            print(f"Error sending with image: {e}")
+            try:
+                bot.send_message(msg.chat.id, post, parse_mode="Markdown")
+                bot.delete_message(msg.chat.id, wait.message_id)
+            except Exception as e2:
+                print(f"Error sending text: {e2}")
+                bot.edit_message_text("❌ حدث خطأ في الإرسال", msg.chat.id, wait.message_id)
+
+
+# ============ WEBHOOK SERVER ============
+from flask import Flask, request
 
 app = Flask(__name__)
 
-# Telegram Application
-application = Application.builder().token(BOT_TOKEN).build()
+WEBHOOK_HOST = os.environ.get("RENDER_EXTERNAL_HOSTNAME")
+WEBHOOK_PORT = int(os.environ.get("PORT", 10000))
+WEBHOOK_URL_BASE = f"https://{WEBHOOK_HOST}" if WEBHOOK_HOST else None
+WEBHOOK_URL_PATH = f"/webhook/{TOKEN}"
 
-
-# -------------------------
-# AI: كتابة بوست جذاب
-# -------------------------
-def generate_caption(product_title, product_description=""):
-    prompt = f"""You are a professional fashion/marketing copywriter for social media.
-
-Product: {product_title}
-Description: {product_description}
-
-Write an attractive Arabic social media post about this product. Make it catchy, engaging, and persuasive. Use emojis. Include a call to action.
-
-Return ONLY the post text, nothing else.
-"""
-
-    try:
-        res = client.chat.completions.create(
-            model="gpt-4.1-mini",
-            messages=[{"role": "user", "content": prompt}]
-        )
-        return res.choices[0].message.content.strip()
-    except Exception as e:
-        print(f"Caption error: {e}")
-        return f"✨ {product_title}\n\nمتوفر الآن على Shein!\n\n#fashion #style #shein"
-
-
-# -------------------------
-# استخراج بيانات المنتج من Shein
-# -------------------------
-def extract_shein_data(url):
-    """يستخرج صورة وعنوان المنتج من رابط Shein"""
-    try:
-        headers = {
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
-        }
-        response = requests.get(url, headers=headers, timeout=15)
-        soup = BeautifulSoup(response.text, 'html.parser')
-
-        # استخراج العنوان
-        title = ""
-        title_tag = soup.find('h1', class_='product-intro__head-name') or \
-                   soup.find('h1', {'data-selenium': 'product-title'}) or \
-                   soup.find('title')
-        if title_tag:
-            title = title_tag.get_text().strip()
-
-        # استخراج الصورة
-        image_url = ""
-        img_tag = soup.find('img', class_='product-intro__main-image') or \
-                 soup.find('img', {'data-selenium': 'product-image'}) or \
-                 soup.find('meta', property='og:image')
-        
-        if img_tag:
-            if img_tag.name == 'meta':
-                image_url = img_tag.get('content', '')
-            else:
-                image_url = img_tag.get('src', '') or img_tag.get('data-src', '')
-
-        # لو مفيش صورة، نستخدم صورة افتراضية
-        if not image_url:
-            image_url = "https://img.ltwebstatic.com/images3_pi/2021/04/09/1617973305e8b6c0db1f9e8c1e5c1e5c1e5c1e5c1e.webp"
-
-        return {
-            "title": title or "منتج Shein",
-            "image": image_url,
-            "url": url
-        }
-    except Exception as e:
-        print(f"Extract error: {e}")
-        return {
-            "title": "منتج Shein",
-            "image": "https://img.ltwebstatic.com/images3_pi/2021/04/09/1617973305e8b6c0db1f9e8c1e5c1e5c1e5c1e5c1e.webp",
-            "url": url
-        }
-
-
-# -------------------------
-# FLASK ROUTES
-# -------------------------
 @app.route('/')
-def home():
-    return "Smart Stylist Bot is running! ✅"
+def index():
+    return "🤖 البوت يعمل — شي إن ديلز 🔥"
 
-
-@app.route(f'/{BOT_TOKEN}', methods=['POST'])
+@app.route(WEBHOOK_URL_PATH, methods=['POST'])
 def webhook():
-    """يستقبل الـ updates من Telegram"""
-    try:
-        update_data = request.get_json(force=True)
-        print(f"📩 Received update: {json.dumps(update_data, ensure_ascii=False)[:200]}")
+    if request.headers.get('content-type') == 'application/json':
+        json_string = request.get_data().decode('utf-8')
+        update = telebot.types.Update.de_json(json_string)
+        bot.process_new_updates([update])
+        return ''
+    else:
+        return 'Unsupported Media Type', 415
 
-        update = Update.de_json(update_data, application.bot)
+def start_webhook():
+    if WEBHOOK_HOST:
+        bot.remove_webhook()
+        time.sleep(1)
+        bot.set_webhook(url=WEBHOOK_URL_BASE + WEBHOOK_URL_PATH)
+        print(f"✅ Webhook set to: {WEBHOOK_URL_BASE}{WEBHOOK_URL_PATH}")
+    else:
+        print("⚠️ RENDER_EXTERNAL_HOSTNAME not set, running in local mode...")
 
-        if update.message and update.message.text:
-            text = update.message.text
-            chat_id = update.message.chat_id
+    app.run(host='0.0.0.0', port=WEBHOOK_PORT)
 
-            print(f"💬 Message from {chat_id}: {text}")
-
-            # ✅ لو الرسالة فيها لينك Shein
-            if "shein.com" in text or "shein" in text.lower():
-                thread = threading.Thread(
-                    target=process_shein_link_sync,
-                    args=(chat_id, text)
-                )
-                thread.start()
-            elif text == "/start":
-                thread = threading.Thread(
-                    target=process_start_sync,
-                    args=(chat_id,)
-                )
-                thread.start()
-
-        return Response('OK', status=200)
-    except Exception as e:
-        print(f"❌ Error: {e}")
-        import traceback
-        traceback.print_exc()
-        return Response('Error', status=500)
-
-
-def process_start_sync(chat_id):
-    """بيبعت رسالة البداية"""
-    loop = asyncio.new_event_loop()
-    asyncio.set_event_loop(loop)
-    try:
-        loop.run_until_complete(send_start_message(chat_id))
-    finally:
-        loop.close()
-
-
-def process_shein_link_sync(chat_id, text):
-    """بيتعامل مع لينك Shein"""
-    loop = asyncio.new_event_loop()
-    asyncio.set_event_loop(loop)
-    try:
-        loop.run_until_complete(process_shein_link(chat_id, text))
-    finally:
-        loop.close()
-
-
-async def send_start_message(chat_id):
-    """بيبعت رسالة البداية"""
-    await application.bot.send_message(
-        chat_id=chat_id,
-        text="👗 *Smart Stylist - Shein Edition* ✨\n\n"
-             "ابعتلي لينك أي قطعة من Shein وأنا هجهزلك:\n"
-             "📸 صورة المنتج\n"
-             "✍️ بوست جذاب\n"
-             "🔗 رابط المنتج\n\n"
-             "جرب دلوقتي!",
-        parse_mode="Markdown"
-    )
-
-
-async def process_shein_link(chat_id, text):
-    """بيبعت صورة + بوست + رابط"""
-    # استخراج الرابط من الرسالة
-    import re
-    urls = re.findall(r'http[s]?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\\(\\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+', text)
-    
-    if not urls:
-        await application.bot.send_message(
-            chat_id=chat_id,
-            text="❌ مفيش لينك صحيح. ابعت لينك من Shein."
-        )
-        return
-
-    url = urls[0]
-    print(f"🔗 Processing URL: {url}")
-
-    # استخراج بيانات المنتج
-    await application.bot.send_message(
-        chat_id=chat_id,
-        text="⏳ بجيب بيانات المنتج..."
-    )
-
-    product_data = extract_shein_data(url)
-
-    # كتابة البوست
-    caption = generate_caption(product_data["title"])
-
-    # تجميع الرسالة النهائية
-    final_text = f"{caption}\n\n🔗 [اشتري دلوقتي]({url})"
-
-    print(f"📸 Image: {product_data['image']}")
-    print(f"✍️ Caption: {caption[:100]}...")
-
-    # إرسال الصورة مع النص
-    try:
-        await application.bot.send_photo(
-            chat_id=chat_id,
-            photo=product_data["image"],
-            caption=final_text,
-            parse_mode="Markdown"
-        )
-    except Exception as e:
-        print(f"Photo send error: {e}")
-        # لو الصورة مبعتتش، نبعت النص بس
-        await application.bot.send_message(
-            chat_id=chat_id,
-            text=final_text,
-            parse_mode="Markdown",
-            disable_web_page_preview=False
-        )
-
-
-# -------------------------
-# MAIN
-# -------------------------
-def main():
-    print("Smart Stylist - Shein Edition starting...")
-
-    # Initialize
-    loop = asyncio.new_event_loop()
-    asyncio.set_event_loop(loop)
-    loop.run_until_complete(application.initialize())
-    loop.close()
-
-    # Webhook URL
-    webhook_path = f"/{BOT_TOKEN}"
-    webhook_url = f"https://{WEBHOOK_HOST}{webhook_path}"
-
-    print(f"Setting webhook: {webhook_url}")
-
-    # سجل الـ webhook
-    loop = asyncio.new_event_loop()
-    asyncio.set_event_loop(loop)
-    loop.run_until_complete(application.bot.set_webhook(url=webhook_url))
-    loop.close()
-
-    print(f"✅ Server running on port {PORT}")
-    app.run(host='0.0.0.0', port=PORT)
-
-
-if __name__ == "__main__":
-    main()
+if __name__ == '__main__':
+    start_webhook()
