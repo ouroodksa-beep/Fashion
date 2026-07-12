@@ -1,5 +1,4 @@
-python-telegram-bot==21.6
-openai
-flask
+telebot
 requests
 beautifulsoup4
+flask
