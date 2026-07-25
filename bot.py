@@ -12,10 +12,6 @@ bot = telebot.TeleBot(TOKEN)
 PROXY_URL = os.environ.get("PROXY_URL")
 
 
-def protect_brands(text):
-    return text
-
-
 CATEGORY_KEYWORDS = {
     "electronics": ["phone", "iphone", "samsung", "laptop", "computer", "tablet", "ipad", "airpods", "headphones", "camera", "tv", "screen", "monitor", "keyboard", "mouse", "charger", "cable", "power bank", "battery", "smart watch", "watch", "speaker", "router", "modem", "electronic", "digital", "هاتف", "آيفون", "لابتوب", "كمبيوتر", "تابلت", "سماعات", "شاحن", "كيبل", "بطارية", "شاشة", "كاميرا", "تلفزيون", "راوتر", "ساعة ذكية", "إلكتروني"],
     "fashion": ["shirt", "t-shirt", "pants", "jeans", "jacket", "hoodie", "dress", "skirt", "socks", "shoes", "sneakers", "boots", "sandals", "slippers", "cap", "hat", "bag", "backpack", "wallet", "belt", "tie", "scarf", "gloves", "clothing", "apparel", "wear", "fashion", "قميص", "تيشيرت", "بنطلون", "جاكيت", "فستان", "تنورة", "حذاء", "شنطة", "حقيبة", "محفظة", "حزام", "كاب", "ملابس", "أزياء"],
@@ -34,99 +30,51 @@ def detect_product_category(product_name):
     return "general"
 
 
-def detect_product_gender(product_name):
-    name_lower = product_name.lower()
-    women_indicators = ["women", "woman", "ladies", "lady", "female", "feminine", "نسائي", "نساء", "نسا", "سيدات", "سيدة", "انثى", "انثوي", "dress", "skirt", "فستان", "تنورة", "بلايز", "فساتين", "makeup", "lipstick", "شامبو", "بلسم", "كريم", "عطر نسائي", "عطر للنساء"]
-    men_indicators = ["men", "man", "male", "masculine", "gents", "gentlemen", "رجالي", "رجال", "رجل", "ذكر", "ذكوري", "رجولة", "عطر رجالي", "عطر للرجال"]
-    for indicator in women_indicators:
-        if indicator in name_lower:
-            return "women"
-    for indicator in men_indicators:
-        if indicator in name_lower:
-            return "men"
-    return "neutral"
-
-
-TRANSLATION_DICT = {
-    "laptop": "لابتوب", "tablet": "تابلت", "keyboard": "كيبورد", "mouse": "ماوس",
-    "charger": "شاحن", "cable": "كيبل", "power bank": "باور بانك", "battery": "بطارية",
-    "screen": "شاشة", "monitor": "شاشة عرض", "camera": "كاميرا", "speaker": "سماعة",
-    "watch": "ساعة", "smartwatch": "ساعة ذكية", "headphones": "سماعات رأس",
-    "router": "راوتر", "modem": "مودم", "tv": "تلفزيون", "television": "تلفزيون",
-    "shoes": "حذاء", "shoe": "حذاء", "sneakers": "حذاء رياضي", "boots": "بوت",
-    "sandals": "صندل", "slippers": "شبشب", "t-shirt": "تيشيرت", "shirt": "قميص",
-    "pants": "بنطلون", "jeans": "جينز", "jacket": "جاكيت", "hoodie": "هودي",
-    "dress": "فستان", "skirt": "تنورة", "socks": "شرابات", "cap": "كاب",
-    "hat": "قبعة", "bag": "شنطة", "backpack": "حقيبة ظهر", "wallet": "محفظة",
-    "belt": "حزام", "scarf": "وشاح", "gloves": "قفازات",
-    "perfume": "عطر", "fragrance": "عطر", "oud": "عود", "musk": "مسك",
-    "cream": "كريم", "lotion": "لوشن", "shampoo": "شامبو", "conditioner": "بلسم", "soap": "صابون",
-    "refrigerator": "ثلاجة", "fridge": "ثلاجة", "washing machine": "غسالة",
-    "vacuum cleaner": "مكنسة كهربائية", "air conditioner": "مكيف", "ac": "مكيف",
-    "heater": "دفاية", "fan": "مروحة", "blender": "خلاط", "mixer": "عجانة",
-    "oven": "فرن", "microwave": "مايكرويف", "toaster": "محمصة", "kettle": "غلاية",
-    "coffee maker": "ماكينة قهوة", "iron": "مكواة", "hair dryer": "سشوار",
-    "chair": "كرسي", "table": "طاولة", "desk": "مكتب", "bed": "سرير",
-    "sofa": "كنبة", "couch": "كنبة", "lamp": "لمبة", "light": "إضاءة",
-    "mirror": "مرآة", "carpet": "سجادة", "curtain": "ستارة",
-    "treadmill": "سير كهربائي", "dumbbell": "دامبل", "yoga mat": "حصيرة يوغا",
-    "bicycle": "دراجة", "ball": "كرة", "toys": "ألعاب", "toy": "لعبة",
-    "baby": "أطفال", "kids": "أطفال",
-    "wireless": "لاسلكي", "bluetooth": "بلوتوث", "smart": "ذكي", "digital": "رقمي",
-    "electric": "كهربائي", "automatic": "أوتوماتيك", "portable": "محمول",
-    "professional": "احترافي", "original": "أصلي", "new": "جديد",
-    "pro": "برو", "max": "ماكس", "plus": "بلس", "ultra": "ألترا", "mini": "ميني",
-    "premium": "بريميوم", "deluxe": "ديلوكس", "unisex": "للجنسين", "adult": "للبالغين",
-    "men": "رجالي", "women": "نسائي",
-    "black": "أسود", "white": "أبيض", "blue": "أزرق", "red": "أحمر", "green": "أخضر",
-    "capsule": "كبسولة", "capsules": "كبسولات", "machine": "ماكينة", "maker": "صانع",
-    "espresso": "إسبريسو", "coffee": "قهوة", "cafe": "كافيه",
-    "preparation": "تحضير", "prepare": "تحضير",
-    "anti": "مضاد", "anti-hair loss": "مضاد تساقط", "hair loss": "تساقط الشعر",
-    "stimulating": "منشط", "stimulator": "منشط", "fortifying": "يقوي",
-    "serum": "سيروم", "repair": "ترميم", "damaged": "تالف", "split ends": "نهايات متقصفة",
-    "protection": "حماية", "heat": "حرارة", "spray": "بخاخ", "fixative": "مثبت",
-    "keratin": "كيراتين", "smooth": "سموث", "touch": "ريتاتش", "retouch": "ريتاتش",
-    "night": "نايت", "eau de toilette": "أو دي تواليت", "edt": "أو دي تواليت",
-    "eau de parfum": "أو دي بارفان", "edp": "أو دي بارفان", "perfume": "عطر",
-    "for men": "للرجال", "for women": "للنساء", "unisex": "للجنسين",
-    "swiss": "سويسرية", "arabian": "عربية", "oriental": "شرقية",
-    "honey": "هوني", "treasures": "تريجرز",
-}
-
-
-def translate_to_arabic(text):
-    text = protect_brands(text)
-    text_lower = text.lower()
-    words = text_lower.split()
-    translated_words = []
-    for word in words:
-        clean_word = re.sub(r"[^\w\s]", "", word)
-        if clean_word in TRANSLATION_DICT:
-            translated_words.append(TRANSLATION_DICT[clean_word])
-        else:
-            translated_words.append(word)
-    result = " ".join(translated_words)
-    result = re.sub(r"\b(\w+)\s+\1\b", r"\1", result)
-    return result
-
-
-def smart_arabic_title(full_title):
-    full_title = protect_brands(full_title)
-    arabic_title = translate_to_arabic(full_title)
-    words = arabic_title.split()
-    unique_words = []
-    for word in words:
-        if not unique_words or word.lower() != unique_words[-1].lower():
-            unique_words.append(word)
-    result = " ".join(unique_words)
-    result = protect_brands(result)
-    return result.strip()
-
-
 def get_category_emoji(category):
-    emojis = {"electronics": "📱", "fashion": "👕", "beauty": "💄", "home": "🏠", "sports": "💪"}
-    return emojis.get(category, "📦")
+    emojis = {"electronics": "📱", "fashion": "👕", "beauty": "💄", "home": "🏠", "sports": "💪", "general": "🛍️"}
+    return emojis.get(category, "🛍️")
+
+
+def get_khaleeji_description(category):
+    descriptions = {
+        "fashion": [
+            "✨ قطعة تضيف لمسة أنيقة لإطلالتك اليومية",
+            "💫 خامات ممتازة وتصميم يخطف العين",
+            "👗 مناسبة لكل المناسبات والخروجات",
+            "🔥 لا تفوتيها، تستاهل كل ريال"
+        ],
+        "beauty": [
+            "✨ منتج يعطيكي إشراقة طبيعية",
+            "💄 جودة عالية ونتيجة تبهر",
+            "🌸 رائحة تدوم وإحساس منعش",
+            "💎 اختيارك الأفضل للعناية بنفسك"
+        ],
+        "electronics": [
+            "📱 تقنية حديثة وأداء ممتاز",
+            "⚡ سهل الاستخدام ويعيش معاك طويل",
+            "🔥 يستاهل التجربة بكل تأكيد",
+            "💎 من الأشياء اللي تسوى الاستثمار"
+        ],
+        "home": [
+            "🏠 لمسة فخامة تكمل ديكور بيتك",
+            "✨ عملي وجميل في نفس الوقت",
+            "🔥 جودة تتحمل الاستخدام اليومي",
+            "💎 يستاهل التجربة والله"
+        ],
+        "sports": [
+            "💪 يساعدك على تحقيق أهدافك الرياضية",
+            "✨ مريح وعملي للتمارين اليومية",
+            "🔥 جودة عالية تتحمل كل شي",
+            "🏃 ابدئي رحلتك الرياضية بقوة"
+        ],
+        "general": [
+            "✨ منتج مميز وجودته تتكلم",
+            "🔥 يستاهل التجربة والله",
+            "💎 من الأشياء اللي تسوى كل ريال",
+            "🛍️ لا تفوتي الفرصة واختاري الأفضل"
+        ],
+    }
+    return descriptions.get(category, descriptions["general"])
 
 
 def is_shein_url(url):
@@ -200,15 +148,6 @@ def get_shein_product(url):
                     title = title_tag.get_text(strip=True)
                     title = re.sub(r"\s*\|\s*SHEIN.*$", "", title, flags=re.IGNORECASE)
             
-            description = None
-            og_desc = soup.select_one('meta[property="og:description"]')
-            if og_desc:
-                description = og_desc.get("content", "").strip()
-            if not description:
-                meta_desc = soup.select_one('meta[name="description"]')
-                if meta_desc:
-                    description = meta_desc.get("content", "").strip()
-            
             image = None
             og_image = soup.select_one('meta[property="og:image"]')
             if og_image:
@@ -228,13 +167,11 @@ def get_shein_product(url):
                 print("  Title not found")
                 continue
             
-            arabic_title = smart_arabic_title(title)
-            print(f"  SUCCESS: '{arabic_title[:50]}...'")
+            category = detect_product_category(title)
+            print(f"  SUCCESS: category={category}, title={title[:40]}...")
             
             return {
-                "name": arabic_title,
-                "full_title": title,
-                "description": description,
+                "category": category,
                 "image": image,
             }
             
@@ -246,50 +183,21 @@ def get_shein_product(url):
     return None
 
 
-def shorten_description(desc):
-    if not desc:
-        return ""
-    desc = re.sub(r"\s+", " ", desc).strip()
-    sentences = re.split(r"(?<=[.!?])\s+", desc)
-    short = " ".join(sentences[:2])
-    if len(short) > 200:
-        short = short[:197] + "..."
-    return short
-
-
-def get_khaleeji_lines():
-    lines = [
-        ["✨ قطعة تضيف لمسة فخامة لكل مكان", "💎 لا تفوتي الفرصة واختاري الأفضل"],
-        ["🔥 يستاهل التجربة والجودة تتكلم", "✨ من الأشياء اللي تسوى كل ريال"],
-        ["💫 لمسة أنيقة تكمل أناقتك", "🏠 اختيارك الأفضل لبيتك وروتينك"],
-        ["✨ فخامة بسيطة بأقل تكلفة", "💎 جودة عالية تستحق التجربة"],
-        ["🔥 لا يفوتك العرض واغتنم الفرصة", "✨ منتج يستحق كل ثانية تفكير"],
-    ]
-    return random.choice(lines)
-
-
 def generate_post(product_data, original_url):
-    name = product_data["name"]
-    description = product_data.get("description", "")
-    
-    category = detect_product_category(name)
-    category_emoji = get_category_emoji(category)
+    category = product_data.get("category", "general")
+    emoji = get_category_emoji(category)
+    desc_lines = get_khaleeji_description(category)
     
     parts = []
-    parts.append(category_emoji + " " + name)
-    
-    short_desc = shorten_description(description)
-    if short_desc:
-        parts.append("📝 " + short_desc)
-    
-    line1, line2 = get_khaleeji_lines()
-    parts.append(line1)
-    parts.append(line2)
-    
+    parts.append(emoji + " " + desc_lines[0])
+    parts.append(desc_lines[1])
+    parts.append(desc_lines[2])
+    parts.append(desc_lines[3])
+    parts.append("")
     parts.append("🛒 رابط الشراء:")
     parts.append(original_url)
     
-    return "\n\n".join(parts)
+    return "\n".join(parts)
 
 
 @bot.message_handler(func=lambda m: True)
