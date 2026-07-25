@@ -13,11 +13,12 @@ PROXY_URL = os.environ.get("PROXY_URL")
 
 
 CATEGORY_KEYWORDS = {
-    "electronics": ["phone", "iphone", "samsung", "laptop", "computer", "tablet", "ipad", "airpods", "headphones", "camera", "tv", "screen", "monitor", "keyboard", "mouse", "charger", "cable", "power bank", "battery", "smart watch", "watch", "speaker", "router", "modem", "electronic", "digital", "هاتف", "آيفون", "لابتوب", "كمبيوتر", "تابلت", "سماعات", "شاحن", "كيبل", "بطارية", "شاشة", "كاميرا", "تلفزيون", "راوتر", "ساعة ذكية", "إلكتروني"],
-    "fashion": ["shirt", "t-shirt", "pants", "jeans", "jacket", "hoodie", "dress", "skirt", "socks", "shoes", "sneakers", "boots", "sandals", "slippers", "cap", "hat", "bag", "backpack", "wallet", "belt", "tie", "scarf", "gloves", "clothing", "apparel", "wear", "fashion", "قميص", "تيشيرت", "بنطلون", "جاكيت", "فستان", "تنورة", "حذاء", "شنطة", "حقيبة", "محفظة", "حزام", "كاب", "ملابس", "أزياء"],
-    "beauty": ["perfume", "fragrance", "oud", "musk", "cream", "lotion", "shampoo", "conditioner", "soap", "makeup", "lipstick", "foundation", "mascara", "eyeliner", "brush", "cosmetic", "skincare", "haircare", "عطر", "عود", "مسك", "كريم", "شامبو", "بلسم", "صابون", "مكياج", "أحمر شفاه", "عناية", "جمال", "تجميل"],
-    "home": ["refrigerator", "fridge", "washing machine", "vacuum cleaner", "air conditioner", "ac", "heater", "fan", "blender", "mixer", "oven", "microwave", "toaster", "kettle", "coffee maker", "iron", "hair dryer", "chair", "table", "desk", "bed", "sofa", "couch", "lamp", "light", "mirror", "carpet", "curtain", "furniture", "kitchen", "home", "house", "ثلاجة", "غسالة", "مكنسة", "مكيف", "دفاية", "مروحة", "خلاط", "فرن", "مايكرويف", "غلاية", "كرسي", "طاولة", "سرير", "كنبة", "لمبة", "سجادة", "أثاث", "مطبخ", "منزل"],
-    "sports": ["treadmill", "dumbbell", "yoga mat", "bicycle", "ball", "gym", "fitness", "exercise", "workout", "sport", "running", "walking", "training", "sneakers", "shoes", "رياضة", "جيم", "لياقة", "تمارين", "سير", "دامبل", "يوغا", "دراجة", "كرة", "جري", "مشي", "تدريب"]
+    "electronics": ["phone", "iphone", "samsung", "laptop", "computer", "tablet", "ipad", "airpods", "headphones", "camera", "tv", "screen", "monitor", "keyboard", "mouse", "charger", "cable", "power bank", "battery", "smart watch", "watch", "speaker", "router", "modem", "electronic", "digital"],
+    "fashion": ["shirt", "t-shirt", "pants", "jeans", "jacket", "hoodie", "dress", "skirt", "socks", "shoes", "sneakers", "boots", "sandals", "slippers", "cap", "hat", "bag", "backpack", "wallet", "belt", "tie", "scarf", "gloves", "clothing", "apparel", "wear", "fashion", "top", "blouse", "bodysuit", "romper", "jumpsuit", "cardigan", "sweater", "coat", "trench"],
+    "beauty": ["perfume", "fragrance", "oud", "musk", "cream", "lotion", "shampoo", "conditioner", "soap", "makeup", "lipstick", "foundation", "mascara", "eyeliner", "brush", "cosmetic", "skincare", "haircare"],
+    "home": ["refrigerator", "fridge", "washing machine", "vacuum cleaner", "air conditioner", "ac", "heater", "fan", "blender", "mixer", "oven", "microwave", "toaster", "kettle", "coffee maker", "iron", "hair dryer", "chair", "table", "desk", "bed", "sofa", "couch", "lamp", "light", "mirror", "carpet", "curtain", "furniture", "kitchen", "home", "house", "decor", "wall", "storage", "organizer"],
+    "sports": ["treadmill", "dumbbell", "yoga mat", "bicycle", "ball", "gym", "fitness", "exercise", "workout", "sport", "running", "walking", "training", "sneakers", "shoes"],
+    "accessories": ["bag", "backpack", "wallet", "belt", "tie", "scarf", "gloves", "hat", "cap", "sunglasses", "watch", "jewelry", "necklace", "bracelet", "ring", "earring", "hair clip", "headband"],
 }
 
 
@@ -31,50 +32,81 @@ def detect_product_category(product_name):
 
 
 def get_category_emoji(category):
-    emojis = {"electronics": "📱", "fashion": "👕", "beauty": "💄", "home": "🏠", "sports": "💪", "general": "🛍️"}
+    emojis = {"electronics": "📱", "fashion": "👗", "beauty": "💄", "home": "🏠", "sports": "💪", "accessories": "👜", "general": "🛍️"}
     return emojis.get(category, "🛍️")
 
 
-def get_khaleeji_description(category):
-    descriptions = {
-        "fashion": [
-            "✨ قطعة تضيف لمسة أنيقة لإطلالتك اليومية",
-            "💫 خامات ممتازة وتصميم يخطف العين",
-            "👗 مناسبة لكل المناسبات والخروجات",
-            "🔥 لا تفوتيها، تستاهل كل ريال"
-        ],
-        "beauty": [
-            "✨ منتج يعطيكي إشراقة طبيعية",
-            "💄 جودة عالية ونتيجة تبهر",
-            "🌸 رائحة تدوم وإحساس منعش",
-            "💎 اختيارك الأفضل للعناية بنفسك"
-        ],
-        "electronics": [
-            "📱 تقنية حديثة وأداء ممتاز",
-            "⚡ سهل الاستخدام ويعيش معاك طويل",
-            "🔥 يستاهل التجربة بكل تأكيد",
-            "💎 من الأشياء اللي تسوى الاستثمار"
-        ],
-        "home": [
-            "🏠 لمسة فخامة تكمل ديكور بيتك",
-            "✨ عملي وجميل في نفس الوقت",
-            "🔥 جودة تتحمل الاستخدام اليومي",
-            "💎 يستاهل التجربة والله"
-        ],
-        "sports": [
-            "💪 يساعدك على تحقيق أهدافك الرياضية",
-            "✨ مريح وعملي للتمارين اليومية",
-            "🔥 جودة عالية تتحمل كل شي",
-            "🏃 ابدئي رحلتك الرياضية بقوة"
-        ],
-        "general": [
-            "✨ منتج مميز وجودته تتكلم",
-            "🔥 يستاهل التجربة والله",
-            "💎 من الأشياء اللي تسوى كل ريال",
-            "🛍️ لا تفوتي الفرصة واختاري الأفضل"
-        ],
+def shorten_title(title):
+    words = title.split()
+    short = " ".join(words[:10])
+    if len(short) > 80:
+        short = short[:77] + "..."
+    return short
+
+
+def get_templates(category, title_short):
+    fashion_templates = [
+        "يااااا زين {product} 🩵\n\nتفصيلته تبرز الجسم بطريقة ناعمة وأنيقة ✨",
+        "{product} ..\n\nمرة مناسبة للدوامات والاجتماعات والمناسبات الرسمية 👌",
+        "تفاصيييييل {product} رووووعة 😮‍💨🤍\n\nمو من فراغ صارت من الأكثر مبيعًا 🏆",
+        "إذا ناوية سفر وتدورين قطعة ساترة وشييييك، فلا يفووووتك أبد! ✨\n\n{product}",
+        "من أكثر التفاصيل اللي تعطي اللوك لمسة أنثوية؟ ✨\n\n{product} 💫",
+        "وش أمدح أول؟ 😍\n\nجمال {product} ولا قصته الأنيقة؟ ✨\n\nاللوك كله شيك 💫",
+        "{product} ✨\n\nاللون والقصة كلها أنثوية بشكل يلفت 👀💫",
+        "يا بنات {product} يستاهل التجربة 🔥\n\nمن القطع اللي ما تستغنين عنها أبد ✨",
+    ]
+    
+    accessories_templates = [
+        "{product} رهيبببة وحجمها عملي 👌\n\nأكثر شيء شدني فيها التفاصيل المميزة 🤍",
+        "بناااات لا تستهينون بـ {product} ✨\n\nحقيقي يغيّر اللوك بالكامل! 👌",
+        "تنططططق على اليد يابنات، ولوكها أنثوي وأنيق بشكل يلفت ✨\n\n{product}",
+        "{product} ✨\n\nمن الإكسسوارات اللي أشوفها ضرورية بكل دولاب 👌",
+        "يااااا زين {product} 🤍\n\nتكمل أي لوك وتعطيه لمسة فخامة ✨",
+    ]
+    
+    home_templates = [
+        "{product} ✨\n\nلمسة فخامة تكمل ديكور بيتك وتخليه أجمل 🏠",
+        "يااااا زين {product} في البيت 🤍\n\nعملي وجميل بنفس الوقت ✨",
+        "{product} يستاهل التجربة 🔥\n\nجودة تتحمل الاستخدام اليومي بكل أريحية ✨",
+        "من الأشياء اللي تسوى كل ريال 💎\n\n{product} ✨",
+    ]
+    
+    beauty_templates = [
+        "{product} يعطيكي إشراقة طبيعية ✨\n\nجودة عالية ونتيجة تبهر 💄",
+        "يااااا زين {product} 🌸\n\nرائحة تدوم وإحساس منعش طول اليوم ✨",
+        "{product} ✨\n\nاختيارك الأفضل للعناية بنفسك وبأسلوبك 💎",
+    ]
+    
+    electronics_templates = [
+        "{product} 📱\n\nتقنية حديثة وأداء ممتاز يستاهل الاستثمار ✨",
+        "{product} ⚡\n\nسهل الاستخدام ويعيش معاك طويل 🔥",
+    ]
+    
+    sports_templates = [
+        "{product} 💪\n\nيساعدك على تحقيق أهدافك الرياضية بكل قوة ✨",
+        "{product} ✨\n\nمريح وعملي للتمارين اليومية 🔥",
+    ]
+    
+    general_templates = [
+        "{product} ✨\n\nمنتج مميز وجودته تتكلم عن نفسها 🔥",
+        "{product} 💎\n\nمن الأشياء اللي تسوى كل ريال والتجربة ✨",
+        "يااااا زين {product} 🤍\n\nيستاهل التجربة بكل تأكيد ✨",
+        "{product} ✨\n\nلا تفوتي الفرصة واختاري الأفضل 💫",
+    ]
+    
+    templates_map = {
+        "fashion": fashion_templates,
+        "accessories": accessories_templates,
+        "home": home_templates,
+        "beauty": beauty_templates,
+        "electronics": electronics_templates,
+        "sports": sports_templates,
+        "general": general_templates,
     }
-    return descriptions.get(category, descriptions["general"])
+    
+    templates = templates_map.get(category, general_templates)
+    template = random.choice(templates)
+    return template.format(product=title_short)
 
 
 def is_shein_url(url):
@@ -172,6 +204,7 @@ def get_shein_product(url):
             
             return {
                 "category": category,
+                "full_title": title,
                 "image": image,
             }
             
@@ -185,19 +218,13 @@ def get_shein_product(url):
 
 def generate_post(product_data, original_url):
     category = product_data.get("category", "general")
-    emoji = get_category_emoji(category)
-    desc_lines = get_khaleeji_description(category)
+    title = product_data.get("full_title", "")
+    title_short = shorten_title(title)
     
-    parts = []
-    parts.append(emoji + " " + desc_lines[0])
-    parts.append(desc_lines[1])
-    parts.append(desc_lines[2])
-    parts.append(desc_lines[3])
-    parts.append("")
-    parts.append("🛒 رابط الشراء:")
-    parts.append(original_url)
+    post = get_templates(category, title_short)
+    post += "\n\n🛒 رابط الشراء:\n" + original_url
     
-    return "\n".join(parts)
+    return post
 
 
 @bot.message_handler(func=lambda m: True)
