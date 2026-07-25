@@ -684,7 +684,6 @@ TEMPLATES_DB = {
         "يااااا زين {product} 🩵\n\nيعطي اللوك لمسة مميزة وشيك ✨",
         "{product} يا بنات..\n\nمرة عملي ويناسب كل الأوقات والمناسبات 👌",
     ],
-}
 
 
 def get_templates(category, title_short):
