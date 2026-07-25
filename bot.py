@@ -7,7 +7,7 @@ import os
 import requests
 from bs4 import BeautifulSoup
 
-TOKEN = "8888709197:AAGj8kbTPR-iZ-IpglhIh75lpWQhM7kZx7M"
+TOKEN = "8888709197:AAHc3TS6A3_bZcO9a7KLLRQIKdU6ws_x3fI"
 bot = telebot.TeleBot(TOKEN)
 
 GROQ_API_KEY = "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"
