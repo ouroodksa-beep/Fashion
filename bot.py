@@ -1,16 +1,13 @@
 import telebot
 import re
 import time
-import json
 import random
 import os
 import requests
 from bs4 import BeautifulSoup
 
-TOKEN = "8888709197:AAHc3TS6A3_bZcO9a7KLLRQIKdU6ws_x3fI"
+TOKEN = "8888709197:AAGj8kbTPR-iZ-IpglhIh75lpWQhM7kZx7M"
 bot = telebot.TeleBot(TOKEN)
-
-GROQ_API_KEY = "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"
 
 PROXY_URL = os.environ.get("PROXY_URL")
 
@@ -189,7 +186,6 @@ def get_shein_product(url):
             
             soup = BeautifulSoup(r.text, "html.parser")
             
-            # ===== TITLE =====
             title = None
             og_title = soup.select_one('meta[property="og:title"]')
             if og_title:
@@ -204,7 +200,6 @@ def get_shein_product(url):
                     title = title_tag.get_text(strip=True)
                     title = re.sub(r"\s*\|\s*SHEIN.*$", "", title, flags=re.IGNORECASE)
             
-            # ===== DESCRIPTION =====
             description = None
             og_desc = soup.select_one('meta[property="og:description"]')
             if og_desc:
@@ -214,7 +209,6 @@ def get_shein_product(url):
                 if meta_desc:
                     description = meta_desc.get("content", "").strip()
             
-            # ===== IMAGE =====
             image = None
             og_image = soup.select_one('meta[property="og:image"]')
             if og_image:
@@ -252,6 +246,28 @@ def get_shein_product(url):
     return None
 
 
+def shorten_description(desc):
+    if not desc:
+        return ""
+    desc = re.sub(r"\s+", " ", desc).strip()
+    sentences = re.split(r"(?<=[.!?])\s+", desc)
+    short = " ".join(sentences[:2])
+    if len(short) > 200:
+        short = short[:197] + "..."
+    return short
+
+
+def get_khaleeji_lines():
+    lines = [
+        ["✨ قطعة تضيف لمسة فخامة لكل مكان", "💎 لا تفوتي الفرصة واختاري الأفضل"],
+        ["🔥 يستاهل التجربة والجودة تتكلم", "✨ من الأشياء اللي تسوى كل ريال"],
+        ["💫 لمسة أنيقة تكمل أناقتك", "🏠 اختيارك الأفضل لبيتك وروتينك"],
+        ["✨ فخامة بسيطة بأقل تكلفة", "💎 جودة عالية تستحق التجربة"],
+        ["🔥 لا يفوتك العرض واغتنم الفرصة", "✨ منتج يستحق كل ثانية تفكير"],
+    ]
+    return random.choice(lines)
+
+
 def generate_post(product_data, original_url):
     name = product_data["name"]
     description = product_data.get("description", "")
@@ -262,11 +278,13 @@ def generate_post(product_data, original_url):
     parts = []
     parts.append(category_emoji + " " + name)
     
-    if description and len(description) > 10:
-        desc_clean = re.sub(r"\s+", " ", description).strip()
-        if len(desc_clean) > 500:
-            desc_clean = desc_clean[:497] + "..."
-        parts.append("📝 " + desc_clean)
+    short_desc = shorten_description(description)
+    if short_desc:
+        parts.append("📝 " + short_desc)
+    
+    line1, line2 = get_khaleeji_lines()
+    parts.append(line1)
+    parts.append(line2)
     
     parts.append("🛒 رابط الشراء:")
     parts.append(original_url)
