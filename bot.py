@@ -11,6 +11,8 @@ bot = telebot.TeleBot(TOKEN)
 
 PROXY_URL = os.environ.get("PROXY_URL")
 
+# ─── لتتبع آخر template استخدمناه لكل قسم ───
+_last_used_templates = {}
 
 CATEGORY_KEYWORDS = {
     "electronics": ["phone", "iphone", "samsung", "laptop", "computer", "tablet", "ipad", "airpods", "headphones", "camera", "tv", "screen", "monitor", "keyboard", "mouse", "charger", "cable", "power bank", "battery", "smart watch", "watch", "speaker", "router", "modem", "electronic", "digital"],
@@ -21,7 +23,6 @@ CATEGORY_KEYWORDS = {
     "accessories": ["bag", "backpack", "wallet", "belt", "tie", "scarf", "gloves", "hat", "cap", "sunglasses", "watch", "jewelry", "necklace", "bracelet", "ring", "earring", "hair clip", "headband"],
 }
 
-# كلمات بتدل على إن المنتج نسائي
 FEMALE_KEYWORDS = [
     "dress", "frock", "gown", "skirt", "blouse", "bodysuit", "romper", "jumpsuit", 
     "cardigan", "sweater women", "women", "woman", "ladies", "lady", "female", 
@@ -33,7 +34,6 @@ FEMALE_KEYWORDS = [
     "hair clip", "headband", "scrunchie", "yoga mat women", "bag women"
 ]
 
-# كلمات بتدل على إن المنتج رجالي
 MALE_KEYWORDS = [
     "men", "man", "male", "gentleman", "gentlemen", "boys", "boy", "masculine",
     "suit", "blazer", "tie", "bow tie", "cufflinks", "suspenders", "vest",
@@ -45,31 +45,32 @@ MALE_KEYWORDS = [
     "beard", "mustache", "haircare men", "skincare men", "deodorant men"
 ]
 
+# ─── قاموس الوصف العام للمنتجات (للتصنيف بس) ───
 PRODUCT_DESCRIPTIONS = {
-    "dress": "فستان أنيق", "frock": "فستان أنيق", "gown": "فستان سهرة",
-    "shirt": "قميص أنيق", "blouse": "بلوزة أنيقة", "top": "توب أنيق",
-    "t-shirt": "تيشيرت كاجوال", "hoodie": "هودي كاجوال", "jacket": "جاكيت أنيق",
-    "coat": "معطف أنيق", "cardigan": "كارديجان ناعم", "sweater": "سترة دافئة",
-    "pants": "بنطلون أنيق", "jeans": "جينز كاجوال", "skirt": "تنورة أنيقة",
-    "shorts": "شورت كاجوال", "bodysuit": "بدي أنيق", "romper": "رومبر أنيق",
-    "jumpsuit": "جمبسوت أنيق", "socks": "جوارب ناعمة",
-    "shoes": "حذاء أنيق", "sneakers": "سنيكرز كاجوال", "boots": "بوت أنيق",
-    "sandals": "صندل أنيق", "slippers": "شبشب مريح", "heels": "كعب أنيق",
-    "flats": "حذاء مسطح أنيق", "bag": "شنطة أنيقة", "handbag": "شنطة يد أنيقة",
-    "backpack": "شنطة ظهر عملية", "wallet": "محفظة أنيقة", "belt": "حزام أنيق",
-    "scarf": "وشاح ناعم", "gloves": "قفازات أنيقة", "hat": "قبعة أنيقة",
-    "cap": "كاب كاجوال", "sunglasses": "نظارة شمسية أنيقة", "watch": "ساعة أنيقة",
-    "jewelry": "مجوهرات أنيقة", "necklace": "عقد أنيق", "bracelet": "سوار أنيق",
-    "ring": "خاتم أنيق", "earring": "حلق أنيق", "perfume": "عطر فاخر",
-    "fragrance": "عطر فاخر", "lipstick": "أحمر شفاه أنيق",
-    "foundation": "كريم أساس عالي الجودة", "mascara": "ماسكارا ممتازة",
-    "makeup": "ميك أب أنيق", "cream": "كريم عناية فاخر", "lotion": "لوشن ترطيب",
-    "shampoo": "شامبو عناية", "conditioner": "بلسم عناية", "soap": "صابون عناية",
-    "brush": "فرشاة ميك أب", "skincare": "منتج عناية بالبشرة",
-    "haircare": "منتج عناية بالشعر", "phone": "هاتف ذكي", "iphone": "آيفون",
+    "dress": "فستان", "frock": "فستان", "gown": "فستان سهرة",
+    "shirt": "قميص", "blouse": "بلوزة", "top": "توب",
+    "t-shirt": "تيشيرت", "hoodie": "هودي", "jacket": "جاكيت",
+    "coat": "معطف", "cardigan": "كارديجان", "sweater": "سترة",
+    "pants": "بنطلون", "jeans": "جينز", "skirt": "تنورة",
+    "shorts": "شورت", "bodysuit": "بدي", "romper": "رومبر",
+    "jumpsuit": "جمبسوت", "socks": "جوارب",
+    "shoes": "حذاء", "sneakers": "سنيكرز", "boots": "بوت",
+    "sandals": "صندل", "slippers": "شبشب", "heels": "كعب",
+    "flats": "حذاء مسطح", "bag": "شنطة", "handbag": "شنطة يد",
+    "backpack": "شنطة ظهر", "wallet": "محفظة", "belt": "حزام",
+    "scarf": "وشاح", "gloves": "قفازات", "hat": "قبعة",
+    "cap": "كاب", "sunglasses": "نظارة شمسية", "watch": "ساعة",
+    "jewelry": "مجوهرات", "necklace": "عقد", "bracelet": "سوار",
+    "ring": "خاتم", "earring": "حلق", "perfume": "عطر",
+    "fragrance": "عطر", "lipstick": "أحمر شفاه",
+    "foundation": "كريم أساس", "mascara": "ماسكارا",
+    "makeup": "ميك أب", "cream": "كريم عناية", "lotion": "لوشن",
+    "shampoo": "شامبو", "conditioner": "بلسم", "soap": "صابون",
+    "brush": "فرشاة", "skincare": "منتج عناية بالبشرة",
+    "haircare": "منتج عناية بالشعر", "phone": "هاتف", "iphone": "آيفون",
     "samsung": "هاتف سامسونج", "laptop": "لاب توب", "computer": "كمبيوتر",
     "tablet": "تابلت", "ipad": "آيباد", "airpods": "سماعات أيربودز",
-    "headphones": "سماعات رأس", "camera": "كاميرا احترافية", "tv": "تلفزيون",
+    "headphones": "سماعات رأس", "camera": "كاميرا", "tv": "تلفزيون",
     "screen": "شاشة", "monitor": "شاشة عرض", "keyboard": "كيبورد", "mouse": "ماوس",
     "charger": "شاحن", "cable": "كيبل", "power bank": "باور بنك",
     "battery": "بطارية", "smart watch": "ساعة ذكية", "speaker": "سماعة بلوتوث",
@@ -78,12 +79,12 @@ PRODUCT_DESCRIPTIONS = {
     "air conditioner": "مكيف", "heater": "دفاية", "fan": "مروحة",
     "blender": "خلاط", "mixer": "عجانة", "oven": "فرن", "microwave": "مايكرويف",
     "toaster": "محمصة", "kettle": "غلاية", "coffee maker": "ماكينة قهوة",
-    "iron": "مكواة", "hair dryer": "مجفف شعر", "chair": "كرسي أنيق",
-    "table": "طاولة أنيقة", "desk": "مكتب أنيق", "bed": "سرير مريح",
-    "sofa": "كنبة أنيقة", "lamp": "لمبة أنيقة", "mirror": "مرآة أنيقة",
-    "carpet": "سجادة أنيقة", "curtain": "ستارة أنيقة", "furniture": "أثاث أنيق",
+    "iron": "مكواة", "hair dryer": "مجفف شعر", "chair": "كرسي",
+    "table": "طاولة", "desk": "مكتب", "bed": "سرير",
+    "sofa": "كنبة", "lamp": "لمبة", "mirror": "مرآة",
+    "carpet": "سجادة", "curtain": "ستارة", "furniture": "أثاث",
     "treadmill": "جهاز مشي", "dumbbell": "دمبل", "yoga mat": "حصيرة يوغا",
-    "bicycle": "دراجة", "ball": "كرة رياضية", "gym": "معدات جيم",
+    "bicycle": "دراجة", "ball": "كرة", "gym": "معدات جيم",
     "fitness": "معدات لياقة", "exercise": "أداة تمارين", "workout": "معدات تمرين",
 }
 
@@ -98,12 +99,9 @@ def detect_product_category(product_name):
 
 
 def detect_gender(title):
-    """يحدد إذا المنتج رجالي، نسائي، أو محايد"""
     title_lower = title.lower()
-    
     female_score = sum(1 for kw in FEMALE_KEYWORDS if kw in title_lower)
     male_score = sum(1 for kw in MALE_KEYWORDS if kw in title_lower)
-    
     if female_score > male_score:
         return "female"
     elif male_score > female_score:
@@ -111,15 +109,29 @@ def detect_gender(title):
     return "neutral"
 
 
-def get_product_description(title):
+def get_product_name(title):
+    """
+    يستخرج اسم المنتج الحقيقي من العنوان.
+    لو لقى كلمة في القاموس يرجعها، لو لا يترجم العنوان ويختصره.
+    """
     title_lower = title.lower()
-    for keyword, description in PRODUCT_DESCRIPTIONS.items():
-        if keyword in title_lower:
-            return description
+    
+    # ابحث عن أطول كلمة مطابقة في القاموس (عشان "power bank" قبل "bank")
+    matched = None
+    matched_len = 0
+    for keyword, name in PRODUCT_DESCRIPTIONS.items():
+        if keyword in title_lower and len(keyword) > matched_len:
+            matched = name
+            matched_len = len(keyword)
+    
+    if matched:
+        return matched
+    
+    # لو مالقيناش، نترجم ونختصر
     translated = translate_to_arabic(title)
     words = translated.split()
-    short = " ".join(words[:4])
-    return short if short else "منتج مميز"
+    short = " ".join(words[:5])  # أول 5 كلمات
+    return short if short else "منتج"
 
 
 def get_category_emoji(category):
@@ -147,6 +159,7 @@ def translate_to_arabic(text):
 
 
 # ─── قوالب راقية حسب الجنس ───
+# {product} = اسم المنتج الحقيقي (مترجم أو من القاموس)
 TEMPLATES_DB = {
     "fashion": {
         "female": [
@@ -311,15 +324,31 @@ TEMPLATES_DB = {
 }
 
 
-def get_templates(category, gender, title_short):
+def get_templates(category, gender, product_name):
+    """
+    يختار template عشوائي ويتأكد إنه مش نفس آخر واحد استخدم.
+    """
+    global _last_used_templates
+    
     cat_data = TEMPLATES_DB.get(category, TEMPLATES_DB["general"])
-    # لو القسم مفيهوش تقسيم جنس، نستخدم neutral
+    
     if isinstance(cat_data, list):
         templates = cat_data
     else:
         templates = cat_data.get(gender, cat_data.get("neutral", cat_data.get("female", list(cat_data.values())[0])))
-    template = random.choice(templates)
-    return template.format(product=title_short)
+    
+    # لو فيه أكتر من template، نستبعد آخر واحد استخدمناه
+    key = f"{category}_{gender}"
+    last_used = _last_used_templates.get(key)
+    
+    available = [t for t in templates if t != last_used]
+    if not available:
+        available = templates  # لو كلهم نفس بعض (مستحيل بس احتياطي)
+    
+    template = random.choice(available)
+    _last_used_templates[key] = template
+    
+    return template.format(product=product_name)
 
 
 def is_shein_url(url):
@@ -434,8 +463,10 @@ def generate_post(product_data, original_url):
     gender = product_data.get("gender", "neutral")
     title = product_data.get("full_title", "")
 
-    product_desc = get_product_description(title)
-    post = get_templates(category, gender, product_desc)
+    # ← هنا الجديد: نستخدم اسم المنتج الحقيقي مش الوصف العام
+    product_name = get_product_name(title)
+
+    post = get_templates(category, gender, product_name)
     post += "\n\n🛒 رابط الشراء:\n" + original_url
 
     return post
