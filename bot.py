@@ -23,27 +23,65 @@ CATEGORY_KEYWORDS = {
     "accessories": ["bag", "backpack", "wallet", "belt", "tie", "scarf", "gloves", "hat", "cap", "sunglasses", "watch", "jewelry", "necklace", "bracelet", "ring", "earring", "hair clip", "headband", "sunglasses", "umbrella", "keychain"],
 }
 
-FEMALE_KEYWORDS = [
-    "women", "woman", "ladies", "lady", "female", "girl", "girls", "feminine",
-    "bride", "bridal", "wedding", "maternity", "lingerie", "bra", "panty", "panties",
-    "tights", "leggings women", "heels", "flats women", "handbag", "clutch", "tote",
-    "crossbody", "sling", "makeup", "lipstick", "mascara", "eyeliner", "foundation",
-    "skincare women", "haircare women", "perfume women", "fragrance women",
-    "earring", "necklace women", "bracelet women", "hair clip", "headband",
-    "scrunchie", "yoga mat women", "bag women", "dress", "skirt", "blouse",
-    "bodysuit", "romper", "jumpsuit", "cardigan women", "trench women"
-]
+# ─── كلمات تحديد الجنس والفئة العمرية ───
+# كل كلمة ليها وزن: كلما زاد الوزن، كلما كانت أكثر تحديداً
 
-MALE_KEYWORDS = [
-    "men", "man", "male", "gentleman", "gentlemen", "boys", "boy", "masculine",
-    "suit", "blazer", "tie", "bow tie", "cufflinks", "suspenders", "vest",
-    "trousers", "chinos", "cargo pants", "shorts men", "polo", "henley",
-    "undershirt", "boxer", "briefs", "trunks", "socks men", "belt men",
-    "wallet men", "watch men", "bracelet men", "ring men", "necklace men",
-    "backpack men", "bag men", "duffle", "briefcase", "messenger bag",
-    "shaving", "razor", "aftershave", "cologne", "perfume men", "fragrance men",
-    "beard", "mustache", "haircare men", "skincare men", "deodorant men"
-]
+KIDS_KEYWORDS = {
+    # كلمات مؤكدة للأطفال (أولوية قصوى)
+    "kids": 10, "children": 10, "child": 10, "baby": 10, "toddler": 10,
+    "infant": 10, "newborn": 10, "youth": 8, "teen": 5,
+    # ملابس أطفال شائعة
+    "onesie": 8, "bib": 8, "diaper": 8, "stroller": 8, "crib": 8,
+    "pacifier": 8, "feeding bottle": 8,
+}
+
+FEMALE_KEYWORDS = {
+    # كلمات مؤكدة نسائية
+    "women": 10, "woman": 10, "ladies": 10, "lady": 10, "female": 10,
+    "womens": 10, "women's": 10,
+    # ملابس نسائية مميزة
+    "dress": 8, "frock": 8, "gown": 8, "skirt": 8, "blouse": 7,
+    "bodysuit women": 8, "romper women": 8, "jumpsuit women": 8,
+    "lingerie": 10, "bra": 10, "panty": 10, "panties": 10,
+    "tights": 7, "leggings women": 7, "legging women": 7,
+    "heels": 8, "high heels": 10, "stiletto": 10, "pump": 8,
+    "handbag": 8, "clutch": 8, "tote bag": 8, "crossbody": 7,
+    "maternity": 10, "bride": 9, "bridal": 9, "wedding dress": 10,
+    # ميك أب وعناية نسائية
+    "makeup": 8, "lipstick": 8, "mascara": 8, "eyeliner": 8,
+    "foundation": 7, "skincare women": 7, "haircare women": 7,
+    "perfume women": 7, "fragrance women": 7,
+    # إكسسوارات نسائية
+    "earring": 7, "necklace women": 7, "bracelet women": 7,
+    "hair clip": 7, "headband": 6, "scrunchie": 8,
+    # كلمات سياقية
+    "feminine": 8, "girl's": 8, "girls'": 8,
+}
+
+MALE_KEYWORDS = {
+    # كلمات مؤكدة رجالية
+    "men": 10, "man": 10, "male": 10, "gentleman": 10, "gentlemen": 10,
+    "mens": 10, "men's": 10,
+    # ملابس رجالية مميزة
+    "suit": 9, "blazer": 9, "tuxedo": 10, "vest men": 8,
+    "bow tie": 9, "cufflinks": 10, "suspenders": 10,
+    "trousers": 7, "chinos": 8, "cargo pants": 7,
+    "polo shirt": 7, "henley": 8, "undershirt": 8,
+    "boxer": 8, "briefs": 8, "trunks": 7,
+    "socks men": 6, "belt men": 6,
+    # عناية رجالية
+    "shaving": 8, "razor": 8, "aftershave": 10, "cologne": 9,
+    "perfume men": 7, "fragrance men": 7,
+    "beard": 9, "mustache": 9, "haircare men": 7, "skincare men": 7,
+    "deodorant men": 7,
+    # إكسسوارات رجالية
+    "wallet men": 6, "watch men": 6, "bracelet men": 6,
+    "ring men": 6, "necklace men": 6,
+    "backpack men": 6, "bag men": 6, "duffle": 7,
+    "briefcase": 8, "messenger bag": 7, "tie": 8,
+    # كلمات سياقية
+    "masculine": 8, "boy's": 5, "boys'": 5,
+}
 
 
 def detect_product_category(product_name):
@@ -55,32 +93,70 @@ def detect_product_category(product_name):
     return "general"
 
 
-def detect_gender(title):
+def detect_gender_and_age(title):
+    """
+    تحديد الجنس والفئة العمرية بدقة:
+    - kids: أطفال
+    - female: نسائي
+    - male: رجالي
+    - neutral: محايد / مش واضح
+    """
     title_lower = title.lower()
-    female_score = sum(1 for kw in FEMALE_KEYWORDS if kw in title_lower)
-    male_score = sum(1 for kw in MALE_KEYWORDS if kw in title_lower)
-    if female_score > male_score:
-        return "female"
-    elif male_score > female_score:
-        return "male"
+    
+    # 1) حساب النقاط لكل فئة
+    kids_score = sum(weight for kw, weight in KIDS_KEYWORDS.items() if kw in title_lower)
+    female_score = sum(weight for kw, weight in FEMALE_KEYWORDS.items() if kw in title_lower)
+    male_score = sum(weight for kw, weight in MALE_KEYWORDS.items() if kw in title_lower)
+    
+    # 2) منطق خاص للكلمات اللي بتعتمد على السياق
+    # "girls" لوحدها → نسائي، "girls" + "kids/children" → أطفال
+    if "girls" in title_lower or "girl" in title_lower:
+        if any(k in title_lower for k in ["kids", "children", "child", "baby", "toddler"]):
+            kids_score += 5
+        else:
+            female_score += 4
+    
+    # "boys" لوحدها → رجالي، "boys" + "kids/children" → أطفال
+    if "boys" in title_lower or "boy" in title_lower:
+        if any(k in title_lower for k in ["kids", "children", "child", "baby", "toddler"]):
+            kids_score += 5
+        else:
+            male_score += 4
+    
+    # 3) مقارنة النتائج
+    scores = [("kids", kids_score), ("female", female_score), ("male", male_score)]
+    scores.sort(key=lambda x: x[1], reverse=True)
+    
+    best, best_score = scores[0]
+    second = scores[1][1]
+    
+    # لو الفارق كبير بين الأول والتاني، ناخد الأول
+    if best_score > 0 and best_score >= second + 3:
+        return best
+    
+    # لو مفيش نقاط خالص
+    if best_score == 0:
+        return "neutral"
+    
+    # لو الفارق صغير، نرجع neutral عشان ما نلخبطش
     return "neutral"
 
 
-def summarize_product(title, category):
+def summarize_product(title):
     """
     يلخص اسم المنتج من العنوان:
     1. يترجم العنوان للعربي
-    2. يشيل كلمات SHEIN والأرقام والمقاسات
-    3. يختصر لأهم 4-6 كلمات
-    4. يضيف وصف الجنس لو واضح
+    2. يشيل كلمات SHEIN والأرقام والمقاسات والأسعار
+    3. يختصر لأهم 5-6 كلمات
+    4. يضيف وصف الجنس/العمر لو واضح
     """
     # ترجمة العنوان
     translated = translate_to_arabic(title)
     
     # تنظيف: شيل كلمات ماركات ومواقع وكلمات مش مهمة
     cleaned = re.sub(r'\bSHEIN\b|\bAmazon\b|\bAliExpress\b|\beBay\b|\bWish\b', '', translated, flags=re.IGNORECASE)
-    cleaned = re.sub(r'\b\d+\s*(ml|g|kg|cm|mm|inch|inches)\b', '', cleaned, flags=re.IGNORECASE)
-    cleaned = re.sub(r'\b(USD|EUR|GBP|SAR|AED)\s*\d+\b', '', cleaned, flags=re.IGNORECASE)
+    cleaned = re.sub(r'\b\d+\s*(ml|g|kg|cm|mm|inch|inches|oz|lb|ltr)\b', '', cleaned, flags=re.IGNORECASE)
+    cleaned = re.sub(r'\b(USD|EUR|GBP|SAR|AED|QAR|KWD)\s*\d+[\.,]?\d*\b', '', cleaned, flags=re.IGNORECASE)
     cleaned = re.sub(r'\b\d{1,2}%?\s*off?\b', '', cleaned, flags=re.IGNORECASE)
     cleaned = re.sub(r'[\(\)\[\]\{\}]', '', cleaned)
     cleaned = re.sub(r'\s+', ' ', cleaned).strip()
@@ -88,7 +164,6 @@ def summarize_product(title, category):
     # لو العنوان طويل، اختصره لأهم كلمات
     words = cleaned.split()
     if len(words) > 6:
-        # خد أول 6 كلمات (عادة بتكون أهم حاجة)
         cleaned = ' '.join(words[:6])
     
     # لو العنوان فاضي بعد التنظيف، رجع ترجمة مختصرة
@@ -96,17 +171,18 @@ def summarize_product(title, category):
         words = translated.split()
         cleaned = ' '.join(words[:5])
     
-    # ضيف وصف الجنس
-    gender = detect_gender(title)
-    gender_word = ""
-    if gender == "female":
-        gender_word = "نسائي"
-    elif gender == "male":
-        gender_word = "رجالي"
+    # ضيف وصف الجنس/العمر
+    gender_age = detect_gender_and_age(title)
+    tag = ""
+    if gender_age == "kids":
+        tag = "أطفال"
+    elif gender_age == "female":
+        tag = "نسائي"
+    elif gender_age == "male":
+        tag = "رجالي"
     
-    # رتب: لو فيه gender، حطه في الآخر
-    if gender_word and gender_word not in cleaned:
-        cleaned = f"{cleaned} {gender_word}"
+    if tag and tag not in cleaned:
+        cleaned = f"{cleaned} {tag}"
     
     return cleaned.strip()
 
@@ -129,7 +205,8 @@ def translate_to_arabic(text):
     return text
 
 
-# ─── قوالب راقية حسب الجنس ───
+# ─── قوالب راقية حسب الجنس والفئة ───
+# {product} = اسم المنتج الملخص
 TEMPLATES_DB = {
     "fashion": {
         "female": [
@@ -155,6 +232,18 @@ TEMPLATES_DB = {
             "أناقة بسيطة مع {product} — مناسب لكل الأوقات 💎",
             "تصميم عصري يناسب الذوق الرفيع ✨\n\n{product}",
             "{product} — جودة عالية بتصميم يدوم",
+        ],
+        "kids": [
+            "{product} بتصميم عملي وأنيق للأطفال",
+            "قطعة مريحة تناسب نشاطاتهم اليومية 🧸\n\n{product}",
+            "تصميم آمن وأنيق يلبي احتياجات طفلك 🤍\n\n{product}",
+            "{product} — اختيار يجمع بين الراحة والجودة",
+            "لمسة ظريفة وأنيقة مع {product} ✨",
+            "تفاصيل مدروسة تناسب الأطفال 👶\n\n{product}",
+            "{product} يضيف لمسة من المرح لإطلالة طفلك",
+            "راحة وأناقة مع {product} — مناسب للألعاب والخروج 💎",
+            "تصميم عصري يناسب أصغر الأذواق ✨\n\n{product}",
+            "{product} — جودة عالية تتحمل الحركة والمرح",
         ],
         "neutral": [
             "{product} بتصميم عصري يناسب مختلف الأذواق",
@@ -189,6 +278,16 @@ TEMPLATES_DB = {
             "{product} بتصميم يجمع بين الجودة والعملية",
             "قطعة مميزة تستحق الاهتمام 👌\n\n{product}",
         ],
+        "kids": [
+            "{product} — إكسسوار ظريف للأطفال",
+            "تصميم آمن وأنيق يناسب صغارك 🧸\n\n{product}",
+            "قطعة عملية تضيف لمسة من المرح 🤍\n\n{product}",
+            "{product} — اختيار يلبي احتياجات طفلك",
+            "لمسة ظريفة مع {product} 💎",
+            "إكسسوار أنيق يناسب نشاطاتهم اليومية ✨\n\n{product}",
+            "{product} بتصميم يجمع بين الأمان والأناقة",
+            "قطعة مميزة تستحق الاهتمام 👌\n\n{product}",
+        ],
         "neutral": [
             "{product} — إكسسوار يكمل إطلالتك بأناقة",
             "تفصيلة راقية تضيف لمسة مميزة ✨\n\n{product}",
@@ -219,6 +318,16 @@ TEMPLATES_DB = {
             "عناية يومية بأسلوب راقي مع {product} 🌸",
             "جودة تلاحظها من أول استخدام ✨\n\n{product}",
             "{product} — سر الأناقة الطبيعية",
+            "منتج فعّال بتجربة مريحة 👌\n\n{product}",
+        ],
+        "kids": [
+            "{product} — منتج عناية آمن للأطفال",
+            "تركيبة لطيفة تناسب بشرتهم الحساسة ✨\n\n{product}",
+            "منتج يستحق التجربة لراحة طفلك 💎\n\n{product}",
+            "{product} — اختيار يلبي احتياجات طفلك",
+            "عناية يومية بأسلوب آمن مع {product} 🌸",
+            "جودة ملحوظة من أول استخدام ✨\n\n{product}",
+            "{product} — سر النعومة والنظافة",
             "منتج فعّال بتجربة مريحة 👌\n\n{product}",
         ],
         "neutral": [
@@ -283,6 +392,13 @@ TEMPLATES_DB = {
             "{product} — اختيار يجمع بين الأناقة والجودة",
             "جودة عالية بتجربة مريحة 🤍\n\n{product}",
         ],
+        "kids": [
+            "{product} — منتج بجودة تستحق الاهتمام",
+            "تصميم راقي يناسب احتياجات طفلك ✨\n\n{product}",
+            "قطعة مميزة بتفاصيل مدروسة 💎\n\n{product}",
+            "{product} — اختيار يجمع بين الأمان والجودة",
+            "جودة عالية بتجربة مريحة 🤍\n\n{product}",
+        ],
         "neutral": [
             "{product} — منتج بجودة تستحق الاهتمام",
             "تصميم راقي يناسب احتياجاتك ✨\n\n{product}",
@@ -294,16 +410,19 @@ TEMPLATES_DB = {
 }
 
 
-def get_templates(category, gender, product_name):
+def get_templates(category, gender_age, product_name):
     global _last_used_templates
     cat_data = TEMPLATES_DB.get(category, TEMPLATES_DB["general"])
     
     if isinstance(cat_data, list):
         templates = cat_data
     else:
-        templates = cat_data.get(gender, cat_data.get("neutral", cat_data.get("female", list(cat_data.values())[0])))
+        templates = cat_data.get(
+            gender_age, 
+            cat_data.get("neutral", cat_data.get("female", list(cat_data.values())[0]))
+        )
     
-    key = f"{category}_{gender}"
+    key = f"{category}_{gender_age}"
     last_used = _last_used_templates.get(key)
     
     available = [t for t in templates if t != last_used]
@@ -405,12 +524,12 @@ def get_shein_product(url):
                 continue
 
             category = detect_product_category(title)
-            gender = detect_gender(title)
-            print(f"  SUCCESS: category={category}, gender={gender}, title={title[:40]}...")
+            gender_age = detect_gender_and_age(title)
+            print(f"  SUCCESS: category={category}, gender_age={gender_age}, title={title[:40]}...")
 
             return {
                 "category": category,
-                "gender": gender,
+                "gender_age": gender_age,
                 "full_title": title,
                 "image": image,
             }
@@ -425,13 +544,12 @@ def get_shein_product(url):
 
 def generate_post(product_data, original_url):
     category = product_data.get("category", "general")
-    gender = product_data.get("gender", "neutral")
+    gender_age = product_data.get("gender_age", "neutral")
     title = product_data.get("full_title", "")
 
-    # ← الجديد: نلخص اسم المنتج من العنوان كله
-    product_name = summarize_product(title, category)
+    product_name = summarize_product(title)
 
-    post = get_templates(category, gender, product_name)
+    post = get_templates(category, gender_age, product_name)
     post += "\n\n🛒 رابط الشراء:\n" + original_url
 
     return post
