@@ -11,27 +11,27 @@ bot = telebot.TeleBot(TOKEN)
 
 PROXY_URL = os.environ.get("PROXY_URL")
 
-# ─── لتتبع آخر template استخدمناه لكل قسم ───
+# لتتبع آخر template
 _last_used_templates = {}
 
 CATEGORY_KEYWORDS = {
-    "electronics": ["phone", "iphone", "samsung", "laptop", "computer", "tablet", "ipad", "airpods", "headphones", "camera", "tv", "screen", "monitor", "keyboard", "mouse", "charger", "cable", "power bank", "battery", "smart watch", "watch", "speaker", "router", "modem", "electronic", "digital"],
-    "fashion": ["shirt", "t-shirt", "pants", "jeans", "jacket", "hoodie", "dress", "skirt", "socks", "shoes", "sneakers", "boots", "sandals", "slippers", "cap", "hat", "bag", "backpack", "wallet", "belt", "tie", "scarf", "gloves", "clothing", "apparel", "wear", "fashion", "top", "blouse", "bodysuit", "romper", "jumpsuit", "cardigan", "sweater", "coat", "trench"],
-    "beauty": ["perfume", "fragrance", "oud", "musk", "cream", "lotion", "shampoo", "conditioner", "soap", "makeup", "lipstick", "foundation", "mascara", "eyeliner", "brush", "cosmetic", "skincare", "haircare"],
-    "home": ["refrigerator", "fridge", "washing machine", "vacuum cleaner", "air conditioner", "ac", "heater", "fan", "blender", "mixer", "oven", "microwave", "toaster", "kettle", "coffee maker", "iron", "hair dryer", "chair", "table", "desk", "bed", "sofa", "couch", "lamp", "light", "mirror", "carpet", "curtain", "furniture", "kitchen", "home", "house", "decor", "wall", "storage", "organizer"],
-    "sports": ["treadmill", "dumbbell", "yoga mat", "bicycle", "ball", "gym", "fitness", "exercise", "workout", "sport", "running", "walking", "training", "sneakers", "shoes"],
-    "accessories": ["bag", "backpack", "wallet", "belt", "tie", "scarf", "gloves", "hat", "cap", "sunglasses", "watch", "jewelry", "necklace", "bracelet", "ring", "earring", "hair clip", "headband"],
+    "electronics": ["phone", "iphone", "samsung", "laptop", "computer", "tablet", "ipad", "airpods", "headphones", "camera", "tv", "screen", "monitor", "keyboard", "mouse", "charger", "cable", "power bank", "battery", "smart watch", "watch", "speaker", "router", "modem", "electronic", "digital", "bluetooth", "wireless", "usb", "hdmi"],
+    "fashion": ["shirt", "t-shirt", "pants", "jeans", "jacket", "hoodie", "dress", "skirt", "socks", "shoes", "sneakers", "boots", "sandals", "slippers", "cap", "hat", "bag", "backpack", "wallet", "belt", "tie", "scarf", "gloves", "clothing", "apparel", "wear", "fashion", "top", "blouse", "bodysuit", "romper", "jumpsuit", "cardigan", "sweater", "coat", "trench", "denim", "cotton", "linen", "wool", "silk"],
+    "beauty": ["perfume", "fragrance", "oud", "musk", "cream", "lotion", "shampoo", "conditioner", "soap", "makeup", "lipstick", "foundation", "mascara", "eyeliner", "brush", "cosmetic", "skincare", "haircare", "serum", "toner", "moisturizer", "sunscreen", "mask"],
+    "home": ["refrigerator", "fridge", "washing machine", "vacuum cleaner", "air conditioner", "ac", "heater", "fan", "blender", "mixer", "oven", "microwave", "toaster", "kettle", "coffee maker", "iron", "hair dryer", "chair", "table", "desk", "bed", "sofa", "couch", "lamp", "light", "mirror", "carpet", "curtain", "furniture", "kitchen", "home", "house", "decor", "wall", "storage", "organizer", "pillow", "blanket"],
+    "sports": ["treadmill", "dumbbell", "yoga mat", "bicycle", "ball", "gym", "fitness", "exercise", "workout", "sport", "running", "walking", "training", "sneakers", "shoes", "dumbbells", "kettlebell", "resistance band", "foam roller"],
+    "accessories": ["bag", "backpack", "wallet", "belt", "tie", "scarf", "gloves", "hat", "cap", "sunglasses", "watch", "jewelry", "necklace", "bracelet", "ring", "earring", "hair clip", "headband", "sunglasses", "umbrella", "keychain"],
 }
 
 FEMALE_KEYWORDS = [
-    "dress", "frock", "gown", "skirt", "blouse", "bodysuit", "romper", "jumpsuit", 
-    "cardigan", "sweater women", "women", "woman", "ladies", "lady", "female", 
-    "girl", "girls", "feminine", "bride", "bridal", "wedding", "maternity", 
-    "lingerie", "bra", "panty", "panties", "tights", "leggings women", "heels", 
-    "flats women", "handbag", "clutch", "tote", "crossbody", "sling", "makeup", 
-    "lipstick", "mascara", "eyeliner", "foundation", "skincare", "haircare women",
-    "perfume women", "fragrance women", "earring", "necklace", "bracelet women",
-    "hair clip", "headband", "scrunchie", "yoga mat women", "bag women"
+    "women", "woman", "ladies", "lady", "female", "girl", "girls", "feminine",
+    "bride", "bridal", "wedding", "maternity", "lingerie", "bra", "panty", "panties",
+    "tights", "leggings women", "heels", "flats women", "handbag", "clutch", "tote",
+    "crossbody", "sling", "makeup", "lipstick", "mascara", "eyeliner", "foundation",
+    "skincare women", "haircare women", "perfume women", "fragrance women",
+    "earring", "necklace women", "bracelet women", "hair clip", "headband",
+    "scrunchie", "yoga mat women", "bag women", "dress", "skirt", "blouse",
+    "bodysuit", "romper", "jumpsuit", "cardigan women", "trench women"
 ]
 
 MALE_KEYWORDS = [
@@ -44,49 +44,6 @@ MALE_KEYWORDS = [
     "shaving", "razor", "aftershave", "cologne", "perfume men", "fragrance men",
     "beard", "mustache", "haircare men", "skincare men", "deodorant men"
 ]
-
-# ─── قاموس الوصف العام للمنتجات (للتصنيف بس) ───
-PRODUCT_DESCRIPTIONS = {
-    "dress": "فستان", "frock": "فستان", "gown": "فستان سهرة",
-    "shirt": "قميص", "blouse": "بلوزة", "top": "توب",
-    "t-shirt": "تيشيرت", "hoodie": "هودي", "jacket": "جاكيت",
-    "coat": "معطف", "cardigan": "كارديجان", "sweater": "سترة",
-    "pants": "بنطلون", "jeans": "جينز", "skirt": "تنورة",
-    "shorts": "شورت", "bodysuit": "بدي", "romper": "رومبر",
-    "jumpsuit": "جمبسوت", "socks": "جوارب",
-    "shoes": "حذاء", "sneakers": "سنيكرز", "boots": "بوت",
-    "sandals": "صندل", "slippers": "شبشب", "heels": "كعب",
-    "flats": "حذاء مسطح", "bag": "شنطة", "handbag": "شنطة يد",
-    "backpack": "شنطة ظهر", "wallet": "محفظة", "belt": "حزام",
-    "scarf": "وشاح", "gloves": "قفازات", "hat": "قبعة",
-    "cap": "كاب", "sunglasses": "نظارة شمسية", "watch": "ساعة",
-    "jewelry": "مجوهرات", "necklace": "عقد", "bracelet": "سوار",
-    "ring": "خاتم", "earring": "حلق", "perfume": "عطر",
-    "fragrance": "عطر", "lipstick": "أحمر شفاه",
-    "foundation": "كريم أساس", "mascara": "ماسكارا",
-    "makeup": "ميك أب", "cream": "كريم عناية", "lotion": "لوشن",
-    "shampoo": "شامبو", "conditioner": "بلسم", "soap": "صابون",
-    "brush": "فرشاة", "skincare": "منتج عناية بالبشرة",
-    "haircare": "منتج عناية بالشعر", "phone": "هاتف", "iphone": "آيفون",
-    "samsung": "هاتف سامسونج", "laptop": "لاب توب", "computer": "كمبيوتر",
-    "tablet": "تابلت", "ipad": "آيباد", "airpods": "سماعات أيربودز",
-    "headphones": "سماعات رأس", "camera": "كاميرا", "tv": "تلفزيون",
-    "screen": "شاشة", "monitor": "شاشة عرض", "keyboard": "كيبورد", "mouse": "ماوس",
-    "charger": "شاحن", "cable": "كيبل", "power bank": "باور بنك",
-    "battery": "بطارية", "smart watch": "ساعة ذكية", "speaker": "سماعة بلوتوث",
-    "router": "راوتر", "refrigerator": "ثلاجة", "fridge": "ثلاجة",
-    "washing machine": "غسالة", "vacuum cleaner": "مكنسة كهربائية",
-    "air conditioner": "مكيف", "heater": "دفاية", "fan": "مروحة",
-    "blender": "خلاط", "mixer": "عجانة", "oven": "فرن", "microwave": "مايكرويف",
-    "toaster": "محمصة", "kettle": "غلاية", "coffee maker": "ماكينة قهوة",
-    "iron": "مكواة", "hair dryer": "مجفف شعر", "chair": "كرسي",
-    "table": "طاولة", "desk": "مكتب", "bed": "سرير",
-    "sofa": "كنبة", "lamp": "لمبة", "mirror": "مرآة",
-    "carpet": "سجادة", "curtain": "ستارة", "furniture": "أثاث",
-    "treadmill": "جهاز مشي", "dumbbell": "دمبل", "yoga mat": "حصيرة يوغا",
-    "bicycle": "دراجة", "ball": "كرة", "gym": "معدات جيم",
-    "fitness": "معدات لياقة", "exercise": "أداة تمارين", "workout": "معدات تمرين",
-}
 
 
 def detect_product_category(product_name):
@@ -109,35 +66,49 @@ def detect_gender(title):
     return "neutral"
 
 
-def get_product_name(title):
+def summarize_product(title, category):
     """
-    يستخرج اسم المنتج الحقيقي من العنوان.
-    لو لقى كلمة في القاموس يرجعها، لو لا يترجم العنوان ويختصره.
+    يلخص اسم المنتج من العنوان:
+    1. يترجم العنوان للعربي
+    2. يشيل كلمات SHEIN والأرقام والمقاسات
+    3. يختصر لأهم 4-6 كلمات
+    4. يضيف وصف الجنس لو واضح
     """
-    title_lower = title.lower()
-    
-    # ابحث عن أطول كلمة مطابقة في القاموس (عشان "power bank" قبل "bank")
-    matched = None
-    matched_len = 0
-    for keyword, name in PRODUCT_DESCRIPTIONS.items():
-        if keyword in title_lower and len(keyword) > matched_len:
-            matched = name
-            matched_len = len(keyword)
-    
-    if matched:
-        return matched
-    
-    # لو مالقيناش، نترجم ونختصر
+    # ترجمة العنوان
     translated = translate_to_arabic(title)
-    words = translated.split()
-    short = " ".join(words[:5])  # أول 5 كلمات
-    return short if short else "منتج"
-
-
-def get_category_emoji(category):
-    emojis = {"electronics": "📱", "fashion": "👗", "beauty": "💄", "home": "🏠", 
-              "sports": "💪", "accessories": "👜", "general": "🛍️"}
-    return emojis.get(category, "🛍️")
+    
+    # تنظيف: شيل كلمات ماركات ومواقع وكلمات مش مهمة
+    cleaned = re.sub(r'\bSHEIN\b|\bAmazon\b|\bAliExpress\b|\beBay\b|\bWish\b', '', translated, flags=re.IGNORECASE)
+    cleaned = re.sub(r'\b\d+\s*(ml|g|kg|cm|mm|inch|inches)\b', '', cleaned, flags=re.IGNORECASE)
+    cleaned = re.sub(r'\b(USD|EUR|GBP|SAR|AED)\s*\d+\b', '', cleaned, flags=re.IGNORECASE)
+    cleaned = re.sub(r'\b\d{1,2}%?\s*off?\b', '', cleaned, flags=re.IGNORECASE)
+    cleaned = re.sub(r'[\(\)\[\]\{\}]', '', cleaned)
+    cleaned = re.sub(r'\s+', ' ', cleaned).strip()
+    
+    # لو العنوان طويل، اختصره لأهم كلمات
+    words = cleaned.split()
+    if len(words) > 6:
+        # خد أول 6 كلمات (عادة بتكون أهم حاجة)
+        cleaned = ' '.join(words[:6])
+    
+    # لو العنوان فاضي بعد التنظيف، رجع ترجمة مختصرة
+    if not cleaned or len(cleaned) < 3:
+        words = translated.split()
+        cleaned = ' '.join(words[:5])
+    
+    # ضيف وصف الجنس
+    gender = detect_gender(title)
+    gender_word = ""
+    if gender == "female":
+        gender_word = "نسائي"
+    elif gender == "male":
+        gender_word = "رجالي"
+    
+    # رتب: لو فيه gender، حطه في الآخر
+    if gender_word and gender_word not in cleaned:
+        cleaned = f"{cleaned} {gender_word}"
+    
+    return cleaned.strip()
 
 
 def translate_to_arabic(text):
@@ -159,7 +130,6 @@ def translate_to_arabic(text):
 
 
 # ─── قوالب راقية حسب الجنس ───
-# {product} = اسم المنتج الحقيقي (مترجم أو من القاموس)
 TEMPLATES_DB = {
     "fashion": {
         "female": [
@@ -325,11 +295,7 @@ TEMPLATES_DB = {
 
 
 def get_templates(category, gender, product_name):
-    """
-    يختار template عشوائي ويتأكد إنه مش نفس آخر واحد استخدم.
-    """
     global _last_used_templates
-    
     cat_data = TEMPLATES_DB.get(category, TEMPLATES_DB["general"])
     
     if isinstance(cat_data, list):
@@ -337,13 +303,12 @@ def get_templates(category, gender, product_name):
     else:
         templates = cat_data.get(gender, cat_data.get("neutral", cat_data.get("female", list(cat_data.values())[0])))
     
-    # لو فيه أكتر من template، نستبعد آخر واحد استخدمناه
     key = f"{category}_{gender}"
     last_used = _last_used_templates.get(key)
     
     available = [t for t in templates if t != last_used]
     if not available:
-        available = templates  # لو كلهم نفس بعض (مستحيل بس احتياطي)
+        available = templates
     
     template = random.choice(available)
     _last_used_templates[key] = template
@@ -463,8 +428,8 @@ def generate_post(product_data, original_url):
     gender = product_data.get("gender", "neutral")
     title = product_data.get("full_title", "")
 
-    # ← هنا الجديد: نستخدم اسم المنتج الحقيقي مش الوصف العام
-    product_name = get_product_name(title)
+    # ← الجديد: نلخص اسم المنتج من العنوان كله
+    product_name = summarize_product(title, category)
 
     post = get_templates(category, gender, product_name)
     post += "\n\n🛒 رابط الشراء:\n" + original_url
