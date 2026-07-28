@@ -403,7 +403,7 @@ if __name__ == "__main__":
     "long sleeve": "أكمام طويلة", "short sleeve": "أكمام قصيرة",
     "sleeveless": "بلا أكمام", "puff sleeve": "أكمام منفوخة",
     "boho": "بوهيمي", "casual": "كاجوال",
-}
+
 
 # كلمات حشو وترجمات عشوائية يتم حذفها تماماً
 SKIP_WORDS = {
