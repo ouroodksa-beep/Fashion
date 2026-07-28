@@ -12,9 +12,8 @@ TOKEN = os.environ.get("BOT_TOKEN", "8888709197:AAEVCTpVticEzi-NBaWRdIQDmKJSxdRz
 bot = telebot.TeleBot(TOKEN)
 
 PROXY_URL = os.environ.get("PROXY_URL")
-_last_used_templates = {}
 
-# ─── قاموس شامل: إنجليزي → عربي ───
+# ─── قاموس شامل: إنجليزي ← عربي ───
 WORDS = {
     # أنواع الملابس
     "dress": "فستان", "frock": "فستان", "gown": "فستان سهرة",
@@ -136,81 +135,10 @@ WORDS = {
     "bishop sleeve": "كم واسع", "raglan sleeve": "كم راجلان",
     "drop shoulder": "كتف منخفض",
     
-    # أنماط
-    "casual": "كاجوال", "formal": "رسمي", "party": "حفلات",
-    "evening": "سهرة", "vintage": "فينتاج", "bohemian": "بوهو",
-    "preppy": "بريبي", "streetwear": "ستريت وير",
-    "elegant": "أنيق", "chic": "شيك", "trendy": "ترندي",
-    "minimalist": "مينيمال", "classic": "كلاسيك",
-    
-    # أحذية تفاصيل
-    "platform": "بلاتفورم", "wedge": "ويدج", "stiletto": "ستيليتو",
-    "block heel": "كعب سميك", "knee high": "للركبة",
-    "thigh high": "فوق الركبة", "ankle strap": "حمالة كاحل",
-    
-    # إلكترونيات تفاصيل
-    "wireless": "لاسلكي", "bluetooth": "بلوتوث",
-    "noise cancelling": "عزل ضوضاء", "fast charging": "شحن سريع",
-    "waterproof": "مقاوم للماء",
-    
     # أطفال
     "baby": "بيبي", "toddler": "طفل صغير", "infant": "رضيع",
 }
 
-# ─── تصنيف المنتجات حسب الكلمات المفتاحية ───
-CATEGORY_KEYWORDS = {
-    "fashion": [
-        "dress", "frock", "gown", "shirt", "blouse", "top", "t-shirt", "hoodie", 
-        "sweatshirt", "jacket", "coat", "blazer", "cardigan", "sweater", "pullover",
-        "pants", "trousers", "jeans", "chinos", "shorts", "skirt", "leggings", 
-        "jumpsuit", "romper", "bodysuit", "overalls", "socks", "tights", "stockings",
-        "shoes", "sneakers", "boots", "sandals", "slippers", "heels", "pumps", "flats",
-        "loafers", "oxfords", "denim", "leather", "suede", "velvet", "satin", "silk",
-        "cotton", "linen", "wool", "knit", "mesh", "lace", "chiffon", "organza", "sequin",
-        "slim fit", "regular fit", "loose fit", "oversized", "skinny", "straight",
-        "wide leg", "flare", "bootcut", "cropped", "crop", "mini", "midi", "maxi",
-        "high waist", "low waist", "bodycon", "a-line", "peplum", "wrap", "off shoulder",
-        "one shoulder", "cold shoulder", "asymmetric", "layered", "ruched", "pleated",
-        "frill", "ruffle", "smocked", "shirred", "embroidered", "beaded", "sequined",
-        "cut out", "slit", "zipper", "button", "drawstring", "belted", "pocket",
-        "hooded", "collar", "lapel", "bow", "strap", "spaghetti strap", "v-neck",
-        "round neck", "crew neck", "square neck", "halter", "high neck", "mock neck",
-        "turtleneck", "polo neck", "scoop neck", "long sleeve", "short sleeve",
-        "sleeveless", "cap sleeve", "puff sleeve", "bell sleeve", "bishop sleeve",
-        "raglan sleeve", "drop shoulder", "casual", "formal", "party", "evening",
-        "vintage", "bohemian", "preppy", "streetwear", "elegant", "chic", "trendy",
-        "minimalist", "classic", "platform", "wedge", "stiletto", "block heel",
-        "knee high", "thigh high", "ankle strap"
-    ],
-    "accessories": [
-        "bag", "handbag", "backpack", "tote", "clutch", "crossbody", "wallet", "belt",
-        "tie", "scarf", "gloves", "hat", "cap", "sunglasses", "watch", "jewelry",
-        "necklace", "bracelet", "ring", "earrings", "earring"
-    ],
-    "beauty": [
-        "perfume", "fragrance", "cologne", "makeup", "lipstick", "lip gloss",
-        "foundation", "mascara", "eyeliner", "eyeshadow", "blush", "highlighter",
-        "concealer", "primer", "setting spray", "cream", "lotion", "serum", "toner",
-        "moisturizer", "sunscreen", "shampoo", "conditioner", "mask", "soap", "brush"
-    ],
-    "electronics": [
-        "phone", "iphone", "samsung", "laptop", "computer", "tablet", "ipad", "airpods",
-        "headphones", "earbuds", "camera", "tv", "television", "monitor", "keyboard",
-        "mouse", "charger", "cable", "power bank", "battery", "smart watch", "speaker",
-        "router", "wireless", "bluetooth", "noise cancelling", "fast charging", "waterproof"
-    ],
-    "home": [
-        "refrigerator", "fridge", "washing machine", "vacuum cleaner", "air conditioner",
-        "heater", "fan", "blender", "mixer", "oven", "microwave", "toaster", "kettle",
-        "coffee maker", "iron", "hair dryer", "chair", "table", "desk", "bed", "sofa",
-        "lamp", "mirror", "carpet", "curtain", "pillow"
-    ],
-    "sports": [
-        "treadmill", "dumbbell", "yoga mat", "bicycle", "ball", "gym"
-    ]
-}
-
-# كلمات نستبعدها خالص
 SKIP_WORDS = {
     "shein", "for", "with", "and", "the", "a", "an", "in", "on", "at", "to", "of",
     "by", "from", "up", "out", "new", "hot", "sale", "best", "top", "fashion",
@@ -223,12 +151,8 @@ SKIP_WORDS = {
     "oz", "lb", "gb", "tb", "mb", "mah", "w", "v", "hz",
     "usd", "eur", "gbp", "sar", "aed", "qar", "kwd", "egp",
     "off", "discount", "clearance", "deal", "promo",
-    "women", "woman", "ladies", "lady", "female", "men", "man", "male",
-    "girls", "girl", "boys", "boy", "kids", "children", "child", "unisex",
-    "y2k", "90s", "80s", "70s", "retro",
 }
 
-# كلمات بتدل على الجنس (للتصنيف بس، مش للوصف)
 GENDER_MARKERS = {
     "women", "woman", "ladies", "lady", "female", "womens", "women's",
     "men", "man", "male", "mens", "men's", "gentleman", "gentlemen",
@@ -237,71 +161,47 @@ GENDER_MARKERS = {
 }
 
 
-def detect_product_category(title):
-    title_lower = title.lower()
-    for category, keywords in CATEGORY_KEYWORDS.items():
-        for keyword in keywords:
-            if keyword in title_lower:
-                return category
-    return "general"
-
-
 def detect_gender(title):
     title_lower = title.lower()
     has_female = any(w in title_lower for w in ["women", "woman", "ladies", "lady", "female", "womens", "women's", "girl's", "girls'", "dress", "skirt", "blouse", "lingerie", "bra", "panty", "heels", "handbag", "clutch", "maternity", "bride", "bridal"])
     has_male = any(w in title_lower for w in ["men", "man", "male", "mens", "men's", "boy's", "boys'", "suit", "blazer", "tuxedo", "bow tie", "cufflinks", "suspenders", "trousers", "chinos", "aftershave", "cologne", "beard", "mustache"])
     has_kids = any(w in title_lower for w in ["kids", "children", "child", "baby", "toddler", "infant", "newborn", "onesie", "bib", "diaper", "stroller", "crib", "pacifier"])
     
-    # أولوية الأطفال لو فيه كلمات أطفال واضحة
-    if has_kids and (has_female or has_male or "girls" in title_lower or "boys" in title_lower):
-        return "kids"
     if has_kids:
         return "kids"
     if has_female and not has_male:
         return "female"
     if has_male and not has_female:
         return "male"
-    if has_female and has_male:
-        return "neutral"  # unisex
     return "neutral"
 
 
 def extract_keywords(title):
-    """
-    تستخرج الكلمات المهمة من العنوان وترتبهم:
-    [نوع المنتج, خامة/قصة, لون, تفاصيل]
-    """
-    # نظف
     clean = title.lower()
-    clean = re.sub(r'[^\w\s\-]', ' ', clean)  # شيل علامات الترقيم
+    clean = re.sub(r'[^\w\s\-]', ' ', clean)
     clean = re.sub(r'\s+', ' ', clean).strip()
     words = clean.split()
     
     found = []
     i = 0
     while i < len(words):
-        # جرب كلمتين مع بعض أول (مثلاً slim fit, long sleeve)
         if i + 1 < len(words):
             two = f"{words[i]} {words[i+1]}"
             if two in WORDS:
                 found.append((two, WORDS[two]))
                 i += 2
                 continue
-            # كلمات مركبة بشرطة
             two_dash = f"{words[i]}-{words[i+1]}"
             if two_dash in WORDS:
                 found.append((two_dash, WORDS[two_dash]))
                 i += 2
                 continue
         
-        # جرب كلمة واحدة
         w = words[i]
         if w in WORDS:
             found.append((w, WORDS[w]))
         elif w not in SKIP_WORDS and w not in GENDER_MARKERS:
-            # كلمة مش معروفة — نترجمها لو كانت مش رقم
             if not re.match(r'^\d+$', w) and len(w) > 2:
-                # نترجمها بس نحطها في النهاية (أقل أهمية)
                 tr = translate_word(w)
                 if tr and tr != w:
                     found.append((w, tr))
@@ -311,7 +211,6 @@ def extract_keywords(title):
 
 
 def translate_word(word):
-    """ترجمة كلمة واحدة"""
     try:
         url = "https://translate.googleapis.com/translate_a/single"
         params = {"client": "gtx", "sl": "en", "tl": "ar", "dt": "t", "q": word}
@@ -327,28 +226,22 @@ def translate_word(word):
 
 
 def build_description(keywords, gender):
-    """
-    تبني وصف من الكلمات المستخرجة بترتيب منطقي:
-    نوع المنتج + (جنس) + لون/خامة + تفاصيل
-    """
     if not keywords:
         return "منتج مميز"
     
-    # نفصل الكلمات حسب نوعها
-    types = []      # نوع المنتج (فستان، قميص...)
-    colors = []     # ألوان
-    materials = []  # خامات
-    fits = []       # قصات
-    necks = []      # رقاب
-    sleeves = []    # أكمام
-    details = []    # تفاصيل عامة
-    patterns = []   # أنماط (كاجوال، رسمي...)
-    others = []     # الباقي
+    types = []
+    colors = []
+    materials = []
+    fits = []
+    necks = []
+    sleeves = []
+    details = []
+    patterns = []
     
     type_keywords = {"فستان", "فستان سهرة", "قميص", "بلوزة", "توب", "تيشيرت", "هودي", "سويت شيرت", "جاكيت", "معطف", "بليزر", "كارديجان", "سترة", "بولوفر", "بنطلون", "جينز", "شينو", "شورت", "تنورة", "ليقنز", "جمبسوت", "رومبر", "بدي", "أوفرول", "جوارب", "جورب شفاف", "شرابات", "حذاء", "سنيكرز", "حذاء رياضي", "بوت", "بوت كاحل", "صندل", "شبشب", "كعب عالي", "كعب", "باليرينا", "لوفر", "أوكسفورد", "شنطة", "شنطة يد", "شنطة ظهر", "توت باج", "كلتش", "كروس بودي", "محفظة", "حزام", "ربطة عنق", "وشاح", "قفازات", "قبعة", "كاب", "نظارة شمسية", "ساعة", "مجوهرات", "عقد", "سوار", "خاتم", "حلق", "عطر", "كولونيا", "ميك أب", "أحمر شفاه", "لمع شفاه", "كريم أساس", "ماسكارا", "آيلاينر", "ظل عيون", "بلاشر", "هايلايتر", "كونسيلر", "برايمر", "فيكس سبري", "كريم", "لوشن", "سيروم", "تونر", "مرطب", "واقي شمس", "شامبو", "بلسم", "ماسك", "صابون", "فرشاة", "هاتف", "آيفون", "سامسونج", "لاب توب", "كمبيوتر", "تابلت", "آيباد", "أيربودز", "سماعات رأس", "سماعات أذن", "كاميرا", "تلفزيون", "شاشة", "كيبورد", "ماوس", "شاحن", "كيبل", "باور بنك", "بطارية", "ساعة ذكية", "سماعة", "راوتر", "ثلاجة", "غسالة", "مكنسة كهربائية", "مكيف", "دفاية", "مروحة", "خلاط", "عجانة", "فرن", "مايكرويف", "محمصة", "غلاية", "ماكينة قهوة", "مكواة", "مجفف شعر", "كرسي", "طاولة", "مكتب", "سرير", "كنبة", "لمبة", "مرآة", "سجادة", "ستارة", "مخدة", "جهاز مشي", "دمبل", "حصيرة يوغا", "دراجة", "كرة", "جيم"}
     color_keywords = {"أسود", "أبيض", "أحمر", "أزرق", "أخضر", "أصفر", "وردي", "بنفسجي", "برتقالي", "بني", "بيج", "رمادي", "كحلي", "عنابي", "زيتي", "كاكي", "كريمي", "عاجي", "ذهبي", "فضي", "روز جولد", "متعدد الألوان", "سادة", "مطبوع", "زهري", "مخطط", "مربعات", "منقط", "تاي داي", "تمويه", "تدرج لوني"}
     material_keywords = {"جينز", "جلد", "شمواه", "مخمل", "ساتان", "حرير", "قطن", "كتان", "صوف", "محبوك", "شبك", "دانتيل", "شيفون", "أورجانزا", "ترتر"}
-    fit_keywords = {"ضيق", "عادي", "واسع", "سكيني", "مستقيم", "رجل واسعة", "منفوش", "بوت كت", "قصير", "ميني", "ميدي", "ماكسي", "خصر عالي", "خصر منخفض", "ضيق", "قصة A", "ببلوم", "لف", "اكتاف مكشوفة", "كتف واحد", "كتف مكشوف", "غير متناظر", "متعدد الطبقات"}
+    fit_keywords = {"ضيق", "عادي", "واسع", "سكيني", "مستقيم", "رجل واسعة", "منفوش", "بوت كت", "قصير", "ميني", "ميدي", "ماكسي", "خصر عالي", "خصر منخفض", "قصة A", "ببلوم", "لف", "اكتاف مكشوفة", "كتف واحد", "كتف مكشوف", "غير متناظر", "متعدد الطبقات"}
     neck_keywords = {"رقبة V", "رقبة دائرية", "رقبة مربعة", "هالتر", "رقبة عالية", "رقبة نصف عالية", "رقبة سلحفاة", "رقبة بولو", "رقبة واسعة"}
     sleeve_keywords = {"أكمام طويلة", "أكمام قصيرة", "بلا أكمام", "كم قصير", "كم منفوخ", "كم جرس", "كم واسع", "كم راجلان", "كتف منخفض"}
     pattern_keywords = {"كاجوال", "رسمي", "حفلات", "سهرة", "فينتاج", "بوهو", "بريبي", "ستريت وير", "أنيق", "شيك", "ترندي", "مينيمال", "كلاسيك"}
@@ -371,19 +264,14 @@ def build_description(keywords, gender):
         else:
             details.append(ar)
     
-    # نبني الجملة
     parts = []
-    
-    # 1. نوع المنتج (آخر نوع لقيناه عشان يكون الأدق)
     if types:
         parts.append(types[-1])
     
-    # 2. الجنس
     gender_word = {"female": "نسائي", "male": "رجالي", "kids": "أطفال", "neutral": ""}
     if gender in gender_word and gender_word[gender]:
         parts.append(gender_word[gender])
     
-    # 3. لون/خامة/قصة
     desc_parts = []
     if colors:
         desc_parts.append(colors[0])
@@ -398,16 +286,12 @@ def build_description(keywords, gender):
     if patterns:
         desc_parts.append(patterns[0])
     if details:
-        # ناخد أول تفصيلين بس
         desc_parts.extend(details[:2])
     
     if desc_parts:
         parts.extend(desc_parts)
     
-    # ندمج
     result = " ".join(parts)
-    
-    # تنظيف نهائي
     result = re.sub(r'\s+', ' ', result).strip()
     
     return result if result else "منتج مميز"
@@ -417,253 +301,6 @@ def summarize_product(title):
     gender = detect_gender(title)
     keywords = extract_keywords(title)
     return build_description(keywords, gender)
-
-
-def translate_to_arabic(text):
-    try:
-        url = "https://translate.googleapis.com/translate_a/single"
-        params = {"client": "gtx", "sl": "en", "tl": "ar", "dt": "t", "q": text}
-        headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"}
-        r = requests.get(url, params=params, headers=headers, timeout=10)
-        if r.status_code == 200:
-            data = r.json()
-            translated = ""
-            for item in data[0]:
-                if item[0]:
-                    translated += item[0]
-            return translated if translated else text
-    except Exception as e:
-        print(f"Translation error: {e}")
-    return text
-
-
-# ─── قوالب راقية ───
-TEMPLATES_DB = {
-    "fashion": {
-        "female": [
-            "{product} بتصميم يبرز الأناقة بأسلوب راقي ✨",
-            "قطعة أنيقة تناسب مختلف المناسبات 💫\n\n{product}",
-            "تصميم ناعم يلبي احتياجاتك اليومية بأناقة 🤍\n\n{product}",
-            "{product} — اختيار يجمع بين الجودة والأناقة",
-            "لمسة أنثوية راقية مع {product} ✨",
-            "تفاصيل دقيقة وتصميم يخطف الأنظار 👀\n\n{product}",
-            "{product} يضيف لمسة من الفخامة لإطلالتك",
-            "أناقة بسيطة مع {product} — مناسب لكل الأوقات 💎",
-            "تصميم عصري يناسب الذوق الرفيع ✨\n\n{product}",
-            "{product} — جودة عالية بتصميم يدوم",
-        ],
-        "male": [
-            "{product} بتصميم كلاسيكي يناسب الرجل الأنيق",
-            "قطعة عملية بأسلوب راقي 💼\n\n{product}",
-            "تصميم عملي يلبي احتياجاتك اليومية بأناقة 🤍\n\n{product}",
-            "{product} — اختيار يجمع بين الجودة والعملية",
-            "لمسة رجالية أنيقة مع {product} ✨",
-            "تفاصيل دقيقة وتصميم عملي 👔\n\n{product}",
-            "{product} يضيف لمسة من الأناقة لإطلالتك",
-            "أناقة بسيطة مع {product} — مناسب لكل الأوقات 💎",
-            "تصميم عصري يناسب الذوق الرفيع ✨\n\n{product}",
-            "{product} — جودة عالية بتصميم يدوم",
-        ],
-        "kids": [
-            "{product} بتصميم عملي وأنيق للأطفال",
-            "قطعة مريحة تناسب نشاطاتهم اليومية 🧸\n\n{product}",
-            "تصميم آمن وأنيق يلبي احتياجات طفلك 🤍\n\n{product}",
-            "{product} — اختيار يجمع بين الراحة والجودة",
-            "لمسة ظريفة وأنيقة مع {product} ✨",
-            "تفاصيل مدروسة تناسب الأطفال 👶\n\n{product}",
-            "{product} يضيف لمسة من المرح لإطلالة طفلك",
-            "راحة وأناقة مع {product} — مناسب للألعاب والخروج 💎",
-            "تصميم عصري يناسب أصغر الأذواق ✨\n\n{product}",
-            "{product} — جودة عالية تتحمل الحركة والمرح",
-        ],
-        "neutral": [
-            "{product} بتصميم عصري يناسب مختلف الأذواق",
-            "قطعة عملية بأسلوب راقي ✨\n\n{product}",
-            "تصميم عملي يلبي احتياجاتك اليومية 🤍\n\n{product}",
-            "{product} — اختيار يجمع بين الجودة والعملية",
-            "تفاصيل دقيقة وتصميم أنيق ✨\n\n{product}",
-            "{product} يضيف لمسة من الأناقة لمساحتك",
-            "أناقة بسيطة مع {product} — مناسب لكل الأوقات 💎",
-            "تصميم عصري يناسب الذوق الرفيع ✨\n\n{product}",
-            "{product} — جودة عالية بتصميم يدوم",
-        ],
-    },
-    "accessories": {
-        "female": [
-            "{product} — إكسسوار يكمل إطلالتك بأناقة",
-            "تفصيلة راقية تضيف لمسة مميزة ✨\n\n{product}",
-            "تصميم ناعم يناسب مختلف الأوقات 🤍\n\n{product}",
-            "{product} — قطعة عملية بأسلوب أنيق",
-            "لمسة من الفخامة مع {product} 💎",
-            "إكسسوار أنيق يبرز ذوقك الرفيع ✨\n\n{product}",
-            "{product} بتصميم يجمع بين الجمال والعملية",
-            "قطعة مميزة تستحق الاهتمام 👌\n\n{product}",
-        ],
-        "male": [
-            "{product} — إكسسوار يكمل إطلالتك بأناقة",
-            "تفصيلة راقية تضيف لمسة مميزة ✨\n\n{product}",
-            "تصميم عملي يناسب مختلف الأوقات 🤍\n\n{product}",
-            "{product} — قطعة عملية بأسلوب أنيق",
-            "لمسة من الأناقة مع {product} 💎",
-            "إكسسوار أنيق يبرز ذوقك الرفيع ✨\n\n{product}",
-            "{product} بتصميم يجمع بين الجودة والعملية",
-            "قطعة مميزة تستحق الاهتمام 👌\n\n{product}",
-        ],
-        "kids": [
-            "{product} — إكسسوار ظريف للأطفال",
-            "تصميم آمن وأنيق يناسب صغارك 🧸\n\n{product}",
-            "قطعة عملية تضيف لمسة من المرح 🤍\n\n{product}",
-            "{product} — اختيار يلبي احتياجات طفلك",
-            "لمسة ظريفة مع {product} 💎",
-            "إكسسوار أنيق يناسب نشاطاتهم اليومية ✨\n\n{product}",
-            "{product} بتصميم يجمع بين الأمان والأناقة",
-            "قطعة مميزة تستحق الاهتمام 👌\n\n{product}",
-        ],
-        "neutral": [
-            "{product} — إكسسوار يكمل إطلالتك بأناقة",
-            "تفصيلة راقية تضيف لمسة مميزة ✨\n\n{product}",
-            "تصميم عملي يناسب مختلف الأوقات 🤍\n\n{product}",
-            "{product} — قطعة عملية بأسلوب أنيق",
-            "لمسة من الأناقة مع {product} 💎",
-            "إكسسوار أنيق يبرز ذوقك الرفيع ✨\n\n{product}",
-            "{product} بتصميم يجمع بين الجودة والعملية",
-            "قطعة مميزة تستحق الاهتمام 👌\n\n{product}",
-        ],
-    },
-    "beauty": {
-        "female": [
-            "{product} — منتج عناية بجودة عالية",
-            "تركيبة فاخرة تعطي نتائج مميزة ✨\n\n{product}",
-            "منتج يستحق التجربة لمفعوله الفعّال 💎\n\n{product}",
-            "{product} — اختيار يلبي احتياجاتك بأناقة",
-            "عناية يومية بأسلوب راقي مع {product} 🌸",
-            "جودة تلاحظينها من أول استخدام ✨\n\n{product}",
-            "{product} — سر الإشراقة الطبيعية",
-            "منتج فعّال بتجربة مريحة 👌\n\n{product}",
-        ],
-        "male": [
-            "{product} — منتج عناية بجودة عالية",
-            "تركيبة فاخرة تعطي نتائج مميزة ✨\n\n{product}",
-            "منتج يستحق التجربة لمفعوله الفعّال 💎\n\n{product}",
-            "{product} — اختيار يلبي احتياجاتك بأناقة",
-            "عناية يومية بأسلوب راقي مع {product} 🌸",
-            "جودة تلاحظها من أول استخدام ✨\n\n{product}",
-            "{product} — سر الأناقة الطبيعية",
-            "منتج فعّال بتجربة مريحة 👌\n\n{product}",
-        ],
-        "kids": [
-            "{product} — منتج عناية آمن للأطفال",
-            "تركيبة لطيفة تناسب بشرتهم الحساسة ✨\n\n{product}",
-            "منتج يستحق التجربة لراحة طفلك 💎\n\n{product}",
-            "{product} — اختيار يلبي احتياجات طفلك",
-            "عناية يومية بأسلوب آمن مع {product} 🌸",
-            "جودة ملحوظة من أول استخدام ✨\n\n{product}",
-            "{product} — سر النعومة والنظافة",
-            "منتج فعّال بتجربة مريحة 👌\n\n{product}",
-        ],
-        "neutral": [
-            "{product} — منتج عناية بجودة عالية",
-            "تركيبة فاخرة تعطي نتائج مميزة ✨\n\n{product}",
-            "منتج يستحق التجربة لمفعوله الفعّال 💎\n\n{product}",
-            "{product} — اختيار يلبي احتياجاتك",
-            "عناية يومية بأسلوب راقي مع {product} 🌸",
-            "جودة تلاحظها من أول استخدام ✨\n\n{product}",
-            "{product} — سر الإشراقة الطبيعية",
-            "منتج فعّال بتجربة مريحة 👌\n\n{product}",
-        ],
-    },
-    "home": {
-        "neutral": [
-            "{product} — لمسة أنيقة تكمل ديكور منزلك",
-            "تصميم عملي بأسلوب راقي ✨\n\n{product}",
-            "جودة تتحمل الاستخدام اليومي بأريحية 🏠\n\n{product}",
-            "{product} — اختيار يجمع بين الجمال والعملية",
-            "لمسة من الفخامة لمساحتك مع {product} 💎",
-            "تفاصيل مدروسة بتصميم عصري ✨\n\n{product}",
-            "{product} — عملي وأنيق في آن واحد",
-            "قطعة تستحق الاهتمام لمنزلك 👌\n\n{product}",
-        ],
-    },
-    "electronics": {
-        "neutral": [
-            "{product} — تقنية حديثة بأداء ممتاز",
-            "تصميم عملي يسهل الاستخدام اليومي ⚡\n\n{product}",
-            "جودة عالية تدوم معك طويلاً 📱\n\n{product}",
-            "{product} — اختيار يجمع بين القوة والأناقة",
-            "أداء مميز بتجربة سلسة مع {product} 💎",
-            "تقنية موثوقة بتصميم عصري ✨\n\n{product}",
-            "{product} — استثمار يستحق الثقة",
-            "جهاز فعّال يلبي احتياجاتك 👌\n\n{product}",
-        ],
-    },
-    "sports": {
-        "neutral": [
-            "{product} — أداء مميز لتحقيق أهدافك",
-            "تصميم مريح يناسب التمارين المكثفة 💪\n\n{product}",
-            "جودة عالية تتحمل الاستخدام اليومي ✨\n\n{product}",
-            "{product} — اختيار يجمع بين القوة والراحة",
-            "أداء ممتاز بتجربة مريحة مع {product} 💎",
-            "تصميم عملي يسهل حركتك ✨\n\n{product}",
-            "{product} — استثمار في صحتك ولياقتك",
-            "معدات موثوقة لتمارينك اليومية 👌\n\n{product}",
-        ],
-    },
-    "general": {
-        "female": [
-            "{product} — منتج بجودة تستحق الاهتمام",
-            "تصميم راقي يناسب احتياجاتك ✨\n\n{product}",
-            "قطعة مميزة بتفاصيل مدروسة 💎\n\n{product}",
-            "{product} — اختيار يجمع بين الأناقة والجودة",
-            "جودة عالية بتجربة مريحة 🤍\n\n{product}",
-        ],
-        "male": [
-            "{product} — منتج بجودة تستحق الاهتمام",
-            "تصميم راقي يناسب احتياجاتك ✨\n\n{product}",
-            "قطعة مميزة بتفاصيل مدروسة 💎\n\n{product}",
-            "{product} — اختيار يجمع بين الأناقة والجودة",
-            "جودة عالية بتجربة مريحة 🤍\n\n{product}",
-        ],
-        "kids": [
-            "{product} — منتج بجودة تستحق الاهتمام",
-            "تصميم راقي يناسب احتياجات طفلك ✨\n\n{product}",
-            "قطعة مميزة بتفاصيل مدروسة 💎\n\n{product}",
-            "{product} — اختيار يجمع بين الأمان والجودة",
-            "جودة عالية بتجربة مريحة 🤍\n\n{product}",
-        ],
-        "neutral": [
-            "{product} — منتج بجودة تستحق الاهتمام",
-            "تصميم راقي يناسب احتياجاتك ✨\n\n{product}",
-            "قطعة مميزة بتفاصيل مدروسة 💎\n\n{product}",
-            "{product} — اختيار يجمع بين الأناقة والجودة",
-            "جودة عالية بتجربة مريحة 🤍\n\n{product}",
-        ],
-    },
-}
-
-
-def get_templates(category, gender, product_name):
-    global _last_used_templates
-    cat_data = TEMPLATES_DB.get(category, TEMPLATES_DB["general"])
-    
-    if isinstance(cat_data, list):
-        templates = cat_data
-    else:
-        templates = cat_data.get(
-            gender, 
-            cat_data.get("neutral", cat_data.get("female", list(cat_data.values())[0]))
-        )
-    
-    key = f"{category}_{gender}"
-    last_used = _last_used_templates.get(key)
-    
-    available = [t for t in templates if t != last_used]
-    if not available:
-        available = templates
-    
-    template = random.choice(available)
-    _last_used_templates[key] = template
-    
-    return template.format(product=product_name)
 
 
 def is_shein_url(url):
@@ -682,7 +319,6 @@ def get_shein_product(url):
         try:
             delay = (2 ** attempt) + random.uniform(0.5, 2.0)
             if attempt > 0:
-                print(f"  Waiting {delay:.1f}s before retry...")
                 time.sleep(delay)
 
             session = requests.Session()
@@ -696,14 +332,6 @@ def get_shein_product(url):
                 "Upgrade-Insecure-Requests": "1",
                 "Cache-Control": "max-age=0",
                 "Referer": "https://www.google.com/",
-                "sec-ch-ua": "\"Not_A Brand\";v=\"8\", \"Chromium\";v=\"120\", \"Google Chrome\";v=\"120\"",
-                "sec-ch-ua-mobile": "?0",
-                "sec-ch-ua-platform": "\"Windows\"",
-                "Sec-Fetch-Dest": "document",
-                "Sec-Fetch-Mode": "navigate",
-                "Sec-Fetch-Site": "cross-site",
-                "Sec-Fetch-User": "?1",
-                "Priority": "u=0, i",
             }
 
             proxies = {}
@@ -711,12 +339,8 @@ def get_shein_product(url):
                 proxies = {"http": PROXY_URL, "https": PROXY_URL}
 
             r = session.get(url, headers=headers, timeout=15, proxies=proxies, allow_redirects=True)
-            print(f"Attempt {attempt + 1}: Status {r.status_code}, Length {len(r.text)}")
 
-            if r.status_code != 200:
-                continue
-            if len(r.text) < 3000:
-                print(f"  Content too short ({len(r.text)} chars)")
+            if r.status_code != 200 or len(r.text) < 3000:
                 continue
 
             soup = BeautifulSoup(r.text, "html.parser")
@@ -751,16 +375,9 @@ def get_shein_product(url):
                     image = "https://www.shein.com" + image
 
             if not title:
-                print("  Title not found")
                 continue
 
-            category = detect_product_category(title)
-            gender = detect_gender(title)
-            print(f"  SUCCESS: category={category}, gender={gender}, title={title[:40]}...")
-
             return {
-                "category": category,
-                "gender": gender,
                 "full_title": title,
                 "image": image,
             }
@@ -769,21 +386,15 @@ def get_shein_product(url):
             print(f"Attempt {attempt + 1} failed: {e}")
             continue
 
-    print("  All attempts failed")
     return None
 
 
 def generate_post(product_data, original_url):
-    category = product_data.get("category", "general")
-    gender = product_data.get("gender", "neutral")
     title = product_data.get("full_title", "")
-
-    # ← الجديد: نستخرج وصف منظم من الكلمات المفتاحية
     product_name = summarize_product(title)
 
-    post = get_templates(category, gender, product_name)
-    post += "\n\n🛒 رابط الشراء:\n" + original_url
-
+    # إرسال اسم القطعة والرابط فقط
+    post = f"{product_name}\n\n{original_url}"
     return post
 
 
@@ -797,14 +408,11 @@ def handler(msg):
         return
 
     for original_url in urls:
-        print("\n" + "="*50)
-        print(f"Processing: {original_url}")
-
         if not is_shein_url(original_url):
             bot.reply_to(msg, "❌ الرابط يجب أن يكون من shein.com")
             continue
 
-        wait = bot.reply_to(msg, "⏳ جاري تحليل المنتج وتجهيز المنشور...")
+        wait = bot.reply_to(msg, "⏳ جاري استخراج البيانات...")
 
         product = get_shein_product(original_url)
 
@@ -816,14 +424,14 @@ def handler(msg):
 
         try:
             if product["image"]:
-                bot.send_photo(msg.chat.id, product["image"], caption=post, parse_mode="Markdown")
+                bot.send_photo(msg.chat.id, product["image"], caption=post)
             else:
-                bot.send_message(msg.chat.id, post, parse_mode="Markdown")
+                bot.send_message(msg.chat.id, post)
             bot.delete_message(msg.chat.id, wait.message_id)
         except Exception as e:
             print(f"Error sending: {e}")
             try:
-                bot.send_message(msg.chat.id, post, parse_mode="Markdown")
+                bot.send_message(msg.chat.id, post)
                 bot.delete_message(msg.chat.id, wait.message_id)
             except Exception as e2:
                 print(f"Error sending text: {e2}")
@@ -839,7 +447,7 @@ WEBHOOK_URL_PATH = f"/webhook/{TOKEN}"
 
 @app.route("/")
 def index():
-    return "🤖 البوت يعمل — شي إن ديلز 🔥"
+    return "🤖 البوت يعمل"
 
 @app.route(WEBHOOK_URL_PATH, methods=["POST"])
 def webhook():
