@@ -12,28 +12,77 @@ bot = telebot.TeleBot(TOKEN)
 PROXY_URL = os.environ.get("PROXY_URL")
 _last_used_templates = {}
 
-# ─── قاموس شامل: إنجليزي → عربي ───
-WORDS = {
-    # أنواع الملابس
-    "dress": "فستان", "frock": "فستان", "gown": "فستان سهرة",
+# ─── أنواع المنتجات ───
+PRODUCT_TYPES = {
+    "dress": "فستان", "gown": "فستان", "frock": "فستان",
     "shirt": "قميص", "blouse": "بلوزة", "top": "توب",
     "t-shirt": "تيشيرت", "t shirt": "تيشيرت", "tee": "تيشيرت",
     "hoodie": "هودي", "sweatshirt": "سويت شيرت",
     "jacket": "جاكيت", "coat": "معطف", "blazer": "بليزر",
     "cardigan": "كارديجان", "sweater": "سترة", "pullover": "بولوفر",
     "pants": "بنطلون", "trousers": "بنطلون", "jeans": "جينز",
-    "chinos": "شينو", "shorts": "شورت", "skirt": "تنورة",
+    "shorts": "شورت", "skirt": "تنورة",
     "leggings": "ليقنز", "jumpsuit": "جمبسوت", "romper": "رومبر",
     "bodysuit": "بدي", "overalls": "أوفرول",
-    "socks": "جوارب", "tights": "جورب شفاف", "stockings": "شرابات",
-    
-    # أحذية
-    "shoes": "حذاء", "sneakers": "سنيكرز", "trainers": "حذاء رياضي",
-    "boots": "بوت", "ankle boots": "بوت كاحل", "sandals": "صندل",
-    "slippers": "شبشب", "heels": "كعب عالي", "pumps": "كعب",
-    "flats": "باليرينا", "loafers": "لوفر", "oxfords": "أوكسفورد",
-    
-    # شنط وإكسسوارات
+    "socks": "جوارب", "tights": "شرابات", "stockings": "شرابات",
+    "shoes": "حذاء", "sneakers": "حذاء رياضي", "trainers": "حذاء رياضي",
+    "boots": "بوت", "ankle boots": "بوت", "sandals": "صندل",
+    "slippers": "شبشب", "heels": "كعب", "pumps": "كعب",
+    "flats": "باليرينا", "loafers": "لوفر",
+    "bag": "شنطة", "handbag": "شنطة يد", "backpack": "شنطة ظهر",
+    "tote": "شنطة", "clutch": "كلتش", "crossbody": "شنطة",
+    "wallet": "محفظة", "belt": "حزام", "tie": "ربطة عنق",
+    "scarf": "وشاح", "gloves": "قفازات", "hat": "قبعة", "cap": "كاب",
+    "sunglasses": "نظارة شمسية", "watch": "ساعة",
+    "jewelry": "مجوهرات", "necklace": "عقد", "bracelet": "سوار",
+    "ring": "خاتم", "earrings": "حلق", "earring": "حلق",
+    "perfume": "عطر", "fragrance": "عطر", "cologne": "عطر",
+    "makeup": "ميك أب", "lipstick": "أحمر شفاه", "lip gloss": "لمع شفاه",
+    "foundation": "كريم أساس", "mascara": "ماسكارا",
+    "eyeliner": "آيلاينر", "eyeshadow": "ظل عيون",
+    "blush": "بلاشر", "highlighter": "هايلايتر", "concealer": "كونسيلر",
+    "cream": "كريم", "lotion": "لوشن", "serum": "سيروم",
+    "toner": "تونر", "moisturizer": "مرطب", "sunscreen": "واقي شمس",
+    "shampoo": "شامبو", "conditioner": "بلسم", "mask": "ماسك",
+    "soap": "صابون", "brush": "فرشاة",
+    "phone": "هاتف", "iphone": "آيفون", "samsung": "هاتف",
+    "laptop": "لاب توب", "computer": "كمبيوتر", "tablet": "تابلت",
+    "ipad": "آيباد", "airpods": "أيربودز", "headphones": "سماعات",
+    "earbuds": "سماعات", "camera": "كاميرا",
+    "tv": "تلفزيون", "television": "تلفزيون", "monitor": "شاشة",
+    "keyboard": "كيبورد", "mouse": "ماوس", "charger": "شاحن",
+    "cable": "كيبل", "power bank": "باور بنك", "battery": "بطارية",
+    "smart watch": "ساعة ذكية", "speaker": "سماعة", "router": "راوتر",
+    "refrigerator": "ثلاجة", "fridge": "ثلاجة",
+    "washing machine": "غسالة", "vacuum cleaner": "مكنسة",
+    "air conditioner": "مكيف", "heater": "دفاية", "fan": "مروحة",
+    "blender": "خلاط", "mixer": "عجانة", "oven": "فرن",
+    "microwave": "مايكرويف", "toaster": "محمصة", "kettle": "غلاية",
+    "coffee maker": "ماكينة قهوة", "iron": "مكواة", "hair dryer": "مجفف شعر",
+    "chair": "كرسي", "table": "طاولة", "desk": "مكتب",
+    "bed": "سرير", "sofa": "كنبة", "lamp": "لمبة", "mirror": "مرآة",
+    "carpet": "سجادة", "curtain": "ستارة", "pillow": "مخدة",
+    "treadmill": "جهاز مشي", "dumbbell": "دمبل", "yoga mat": "حصيرة يوغا",
+    "bicycle": "دراجة", "ball": "كرة",
+}
+
+# ─── الألوان ───
+COLORS = {
+    "black": "أسود", "white": "أبيض", "red": "أحمر", "blue": "أزرق",
+    "green": "أخضر", "yellow": "أصفر", "pink": "وردي", "purple": "بنفسجي",
+    "orange": "برتقالي", "brown": "بني", "beige": "بيج", "grey": "رمادي",
+    "gray": "رمادي", "navy": "كحلي", "burgundy": "عنابي", "maroon": "عنابي",
+    "olive": "زيتي", "khaki": "كاكي", "cream": "كريمي", "ivory": "عاجي",
+    "gold": "ذهبي", "silver": "فضي", "rose gold": "روز جولد",
+    "multicolor": "متعدد الألوان", "colorful": "متعدد الألوان",
+    "printed": "مطبوع", "floral": "زهري", "striped": "مخطط",
+    "plaid": "مربعات", "checked": "مربعات", "polka dot": "منقط",
+    "tie dye": "تاي داي", "camouflage": "تمويه", "ombre": "تدرج لوني",
+    "solid": "سادة", "plain": "سادة",
+}
+
+# ─── تصنيف الجنس (للقوالب بس) ───
+FEMALE_SIGNS = {"women", "woman", "ladies", "lady", "
     "bag": "شنطة", "handbag": "شنطة يد", "backpack": "شنطة ظهر",
     "tote": "توت باج", "clutch": "كلتش", "crossbody": "كروس بودي",
     "wallet": "محفظة", "belt": "حزام", "tie": "ربطة عنق",
