@@ -456,7 +456,7 @@ if __name__ == "__main__":
     
     # أطفال
     "baby": "بيبي", "toddler": "طفل صغير", "infant": "رضيع",
-}
+
 
 SKIP_WORDS = {
     "shein", "for", "with", "and", "the", "a", "an", "in", "on", "at", "to", "of",
