@@ -10,287 +10,358 @@ TOKEN = os.environ.get("BOT_TOKEN", "8888709197:AAEVCTpVticEzi-NBaWRdIQDmKJSxdRz
 bot = telebot.TeleBot(TOKEN)
 
 PROXY_URL = os.environ.get("PROXY_URL")
-
 _last_used_templates = {}
 
-CATEGORY_KEYWORDS = {
-    "electronics": ["phone", "iphone", "samsung", "laptop", "computer", "tablet", "ipad", "airpods", "headphones", "camera", "tv", "screen", "monitor", "keyboard", "mouse", "charger", "cable", "power bank", "battery", "smart watch", "watch", "speaker", "router", "modem", "electronic", "digital", "bluetooth", "wireless", "usb", "hdmi"],
-    "fashion": ["shirt", "t-shirt", "pants", "jeans", "jacket", "hoodie", "dress", "skirt", "socks", "shoes", "sneakers", "boots", "sandals", "slippers", "cap", "hat", "bag", "backpack", "wallet", "belt", "tie", "scarf", "gloves", "clothing", "apparel", "wear", "fashion", "top", "blouse", "bodysuit", "romper", "jumpsuit", "cardigan", "sweater", "coat", "trench", "denim", "cotton", "linen", "wool", "silk"],
-    "beauty": ["perfume", "fragrance", "oud", "musk", "cream", "lotion", "shampoo", "conditioner", "soap", "makeup", "lipstick", "foundation", "mascara", "eyeliner", "brush", "cosmetic", "skincare", "haircare", "serum", "toner", "moisturizer", "sunscreen", "mask"],
-    "home": ["refrigerator", "fridge", "washing machine", "vacuum cleaner", "air conditioner", "ac", "heater", "fan", "blender", "mixer", "oven", "microwave", "toaster", "kettle", "coffee maker", "iron", "hair dryer", "chair", "table", "desk", "bed", "sofa", "couch", "lamp", "light", "mirror", "carpet", "curtain", "furniture", "kitchen", "home", "house", "decor", "wall", "storage", "organizer", "pillow", "blanket"],
-    "sports": ["treadmill", "dumbbell", "yoga mat", "bicycle", "ball", "gym", "fitness", "exercise", "workout", "sport", "running", "walking", "training", "sneakers", "shoes", "dumbbells", "kettlebell", "resistance band", "foam roller"],
-    "accessories": ["bag", "backpack", "wallet", "belt", "tie", "scarf", "gloves", "hat", "cap", "sunglasses", "watch", "jewelry", "necklace", "bracelet", "ring", "earring", "hair clip", "headband", "sunglasses", "umbrella", "keychain"],
-}
-
-KIDS_KEYWORDS = {
-    "kids": 10, "children": 10, "child": 10, "baby": 10, "toddler": 10,
-    "infant": 10, "newborn": 10, "youth": 8, "teen": 5,
-    "onesie": 8, "bib": 8, "diaper": 8, "stroller": 8, "crib": 8,
-    "pacifier": 8, "feeding bottle": 8,
-}
-
-FEMALE_KEYWORDS = {
-    "women": 10, "woman": 10, "ladies": 10, "lady": 10, "female": 10,
-    "womens": 10, "women's": 10,
-    "dress": 8, "frock": 8, "gown": 8, "skirt": 8, "blouse": 7,
-    "bodysuit women": 8, "romper women": 8, "jumpsuit women": 8,
-    "lingerie": 10, "bra": 10, "panty": 10, "panties": 10,
-    "tights": 7, "leggings women": 7, "legging women": 7,
-    "heels": 8, "high heels": 10, "stiletto": 10, "pump": 8,
-    "handbag": 8, "clutch": 8, "tote bag": 8, "crossbody": 7,
-    "maternity": 10, "bride": 9, "bridal": 9, "wedding dress": 10,
-    "makeup": 8, "lipstick": 8, "mascara": 8, "eyeliner": 8,
-    "foundation": 7, "skincare women": 7, "haircare women": 7,
-    "perfume women": 7, "fragrance women": 7,
-    "earring": 7, "necklace women": 7, "bracelet women": 7,
-    "hair clip": 7, "headband": 6, "scrunchie": 8,
-    "yoga mat women": 7, "bag women": 7,
-    "feminine": 8, "girl's": 8, "girls'": 8,
-}
-
-MALE_KEYWORDS = {
-    "men": 10, "man": 10, "male": 10, "gentleman": 10, "gentlemen": 10,
-    "mens": 10, "men's": 10,
-    "suit": 9, "blazer": 9, "tuxedo": 10, "vest men": 8,
-    "bow tie": 9, "cufflinks": 10, "suspenders": 10,
-    "trousers": 7, "chinos": 8, "cargo pants": 7,
-    "polo shirt": 7, "henley": 8, "undershirt": 8,
-    "boxer": 8, "briefs": 8, "trunks": 7,
-    "socks men": 6, "belt men": 6,
-    "shaving": 8, "razor": 8, "aftershave": 10, "cologne": 9,
-    "perfume men": 7, "fragrance men": 7,
-    "beard": 9, "mustache": 9, "haircare men": 7, "skincare men": 7,
-    "deodorant men": 7,
-    "wallet men": 6, "watch men": 6, "bracelet men": 6,
-    "ring men": 6, "necklace men": 6,
-    "backpack men": 6, "bag men": 6, "duffle": 7,
-    "briefcase": 8, "messenger bag": 7, "tie": 8,
-    "masculine": 8, "boy's": 5, "boys'": 5,
-}
-
-# ─── قاموس استبدال الكلمات الإنجليزية قبل الترجمة ───
-ENGLISH_FIXES = {
-    # أنواع الرقبة
-    "v-neck": "رقبة على شكل V", "v neck": "رقبة على شكل V",
-    "round neck": "رقبة دائرية", "crew neck": "رقبة دائرية",
-    "square neck": "رقبة مربعة", "halter neck": "رقبة هالتر",
-    "off shoulder": "اكتاف مكشوفة", "off the shoulder": "اكتاف مكشوفة",
+# ─── قاموس شامل: إنجليزي → عربي ───
+WORDS = {
+    # أنواع الملابس
+    "dress": "فستان", "frock": "فستان", "gown": "فستان سهرة",
+    "shirt": "قميص", "blouse": "بلوزة", "top": "توب",
+    "t-shirt": "تيشيرت", "t shirt": "تيشيرت", "tee": "تيشيرت",
+    "hoodie": "هودي", "sweatshirt": "سويت شيرت",
+    "jacket": "جاكيت", "coat": "معطف", "blazer": "بليزر",
+    "cardigan": "كارديجان", "sweater": "سترة", "pullover": "بولوفر",
+    "pants": "بنطلون", "trousers": "بنطلون", "jeans": "جينز",
+    "chinos": "شينو", "shorts": "شورت", "skirt": "تنورة",
+    "leggings": "ليقنز", "jumpsuit": "جمبسوت", "romper": "رومبر",
+    "bodysuit": "بدي", "overalls": "أوفرول",
+    "socks": "جوارب", "tights": "جورب شفاف", "stockings": "شرابات",
+    
+    # أحذية
+    "shoes": "حذاء", "sneakers": "سنيكرز", "trainers": "حذاء رياضي",
+    "boots": "بوت", "ankle boots": "بوت كاحل", "sandals": "صندل",
+    "slippers": "شبشب", "heels": "كعب عالي", "pumps": "كعب",
+    "flats": "باليرينا", "loafers": "لوفر", "oxfords": "أوكسفورد",
+    
+    # شنط وإكسسوارات
+    "bag": "شنطة", "handbag": "شنطة يد", "backpack": "شنطة ظهر",
+    "tote": "توت باج", "clutch": "كلتش", "crossbody": "كروس بودي",
+    "wallet": "محفظة", "belt": "حزام", "tie": "ربطة عنق",
+    "scarf": "وشاح", "gloves": "قفازات", "hat": "قبعة", "cap": "كاب",
+    "sunglasses": "نظارة شمسية", "watch": "ساعة",
+    "jewelry": "مجوهرات", "necklace": "عقد", "bracelet": "سوار",
+    "ring": "خاتم", "earrings": "حلق", "earring": "حلق",
+    
+    # عناية
+    "perfume": "عطر", "fragrance": "عطر", "cologne": "كولونيا",
+    "makeup": "ميك أب", "lipstick": "أحمر شفاه", "lip gloss": "لمع شفاه",
+    "foundation": "كريم أساس", "mascara": "ماسكارا",
+    "eyeliner": "آيلاينر", "eyeshadow": "ظل عيون",
+    "blush": "بلاشر", "highlighter": "هايلايتر", "concealer": "كونسيلر",
+    "primer": "برايمر", "setting spray": "فيكس سبري",
+    "cream": "كريم", "lotion": "لوشن", "serum": "سيروم",
+    "toner": "تونر", "moisturizer": "مرطب", "sunscreen": "واقي شمس",
+    "shampoo": "شامبو", "conditioner": "بلسم", "mask": "ماسك",
+    "soap": "صابون", "brush": "فرشاة",
+    
+    # إلكترونيات
+    "phone": "هاتف", "iphone": "آيفون", "samsung": "سامسونج",
+    "laptop": "لاب توب", "computer": "كمبيوتر", "tablet": "تابلت",
+    "ipad": "آيباد", "airpods": "أيربودز", "headphones": "سماعات رأس",
+    "earbuds": "سماعات أذن", "camera": "كاميرا",
+    "tv": "تلفزيون", "television": "تلفزيون", "monitor": "شاشة",
+    "keyboard": "كيبورد", "mouse": "ماوس", "charger": "شاحن",
+    "cable": "كيبل", "power bank": "باور بنك", "battery": "بطارية",
+    "smart watch": "ساعة ذكية", "speaker": "سماعة", "router": "راوتر",
+    
+    # منزل
+    "refrigerator": "ثلاجة", "fridge": "ثلاجة", "washing machine": "غسالة",
+    "vacuum cleaner": "مكنسة كهربائية", "air conditioner": "مكيف",
+    "heater": "دفاية", "fan": "مروحة", "blender": "خلاط",
+    "mixer": "عجانة", "oven": "فرن", "microwave": "مايكرويف",
+    "toaster": "محمصة", "kettle": "غلاية", "coffee maker": "ماكينة قهوة",
+    "iron": "مكواة", "hair dryer": "مجفف شعر",
+    "chair": "كرسي", "table": "طاولة", "desk": "مكتب",
+    "bed": "سرير", "sofa": "كنبة", "lamp": "لمبة", "mirror": "مرآة",
+    "carpet": "سجادة", "curtain": "ستارة", "pillow": "مخدة",
+    
+    # رياضة
+    "treadmill": "جهاز مشي", "dumbbell": "دمبل", "yoga mat": "حصيرة يوغا",
+    "bicycle": "دراجة", "ball": "كرة", "gym": "جيم",
+    
+    # خامات
+    "denim": "جينز", "leather": "جلد", "suede": "شمواه",
+    "velvet": "مخمل", "satin": "ساتان", "silk": "حرير",
+    "cotton": "قطن", "linen": "كتان", "wool": "صوف",
+    "knit": "محبوك", "mesh": "شبك", "lace": "دانتيل",
+    "chiffon": "شيفون", "organza": "أورجانزا", "sequin": "ترتر",
+    
+    # ألوان
+    "black": "أسود", "white": "أبيض", "red": "أحمر", "blue": "أزرق",
+    "green": "أخضر", "yellow": "أصفر", "pink": "وردي", "purple": "بنفسجي",
+    "orange": "برتقالي", "brown": "بني", "beige": "بيج", "grey": "رمادي",
+    "gray": "رمادي", "navy": "كحلي", "burgundy": "عنابي", "maroon": "عنابي",
+    "olive": "زيتي", "khaki": "كاكي", "cream": "كريمي", "ivory": "عاجي",
+    "gold": "ذهبي", "silver": "فضي", "rose gold": "روز جولد",
+    "multicolor": "متعدد الألوان", "colorful": "متعدد الألوان",
+    "printed": "مطبوع", "floral": "زهري", "striped": "مخطط",
+    "checked": "مربعات", "plaid": "مربعات", "polka dot": "منقط",
+    "tie dye": "تاي داي", "camouflage": "تمويه", "solid": "سادة",
+    "plain": "سادة", "ombre": "تدرج لوني",
+    
+    # قصات وأنماط
+    "slim fit": "ضيق", "regular fit": "عادي", "loose fit": "واسع",
+    "oversized": "واسع", "skinny": "سكيني", "straight": "مستقيم",
+    "wide leg": "رجل واسعة", "flare": "منفوش", "bootcut": "بوت كت",
+    "cropped": "قصير", "crop": "قصير", "mini": "ميني", "midi": "ميدي", "maxi": "ماكسي",
+    "high waist": "خصر عالي", "low waist": "خصر منخفض",
+    "bodycon": "ضيق", "a-line": "قصة A", "peplum": "ببلوم",
+    "wrap": "لف", "off shoulder": "اكتاف مكشوفة",
     "one shoulder": "كتف واحد", "cold shoulder": "كتف مكشوف",
+    "asymmetric": "غير متناظر", "layered": "متعدد الطبقات",
+    
+    # تفاصيل
+    "ruched": "مكشكش", "pleated": "مطوي", "frill": "كشكشة",
+    "ruffle": "كشكشة", "smocked": "مطاطي", "shirred": "مطاطي",
+    "embroidered": "مطرز", "beaded": "خرز", "sequined": "ترتر",
+    "cut out": "قصات", "slit": "شق", "zipper": "سحاب",
+    "button": "زرار", "button front": "أزرار أمامية",
+    "drawstring": "رباط", "belted": "بحزام", "pocket": "جيب",
+    "hooded": "بهودي", "collar": "ياقة", "lapel": "ياقة",
+    "bow": "فيونكة", "strap": "حمالة", "spaghetti strap": "حمالة رفيعة",
+    
+    # رقاب
+    "v-neck": "رقبة V", "round neck": "رقبة دائرية", "crew neck": "رقبة دائرية",
+    "square neck": "رقبة مربعة", "halter": "هالتر",
     "high neck": "رقبة عالية", "mock neck": "رقبة نصف عالية",
     "turtleneck": "رقبة سلحفاة", "polo neck": "رقبة بولو",
     "scoop neck": "رقبة واسعة",
     
-    # قصات
-    "slim fit": "قصة ضيقة", "regular fit": "قصة عادية",
-    "loose fit": "قصة واسعة", "oversized": "قصة واسعة",
-    "bodycon": "قصة ضيقة", "a-line": "قصة A",
-    "fit and flare": "ضيقة ومنفوشة", "peplum": "بيبلوم",
-    "ruched": "مكشكش", "pleated": "مطوي",
-    "layered": "متعدد الطبقات", "asymmetric": "غير متناظر",
-    
-    # خامات
-    "mesh": "شبك", "lace": "دانتيل", "denim": "جينز",
-    "leather": "جلد", "velvet": "مخمل", "satin": "ساتان",
-    "silk": "حرير", "cotton": "قطن", "linen": "كتان",
-    "wool": "صوف", "knit": "محبوك", "woven": "منسوج",
-    "chiffon": "شيفون", "organza": "أورجانزا",
-    
-    # ألوان وأنماط
-    "solid": "سادة", "plain": "سادة", "floral": "زهري",
-    "printed": "مطبوع", "striped": "مخطط",
-    "checked": "مربعات", "plaid": "مربعات",
-    "polka dot": "منقط", "tie dye": "صباغة ربط",
-    "camouflage": "تمويه", "color block": "كتل ملونة",
-    "ombre": "تدرج لوني", "graphic": "جرافيك",
-    "embroidered": "مطرز", "sequin": "ترتر",
-    "glitter": "لماع", "metallic": "معدني",
-    "patchwork": "تصميم متنوع",
-    
-    # أنماط
-    "casual": "كاجوال", "formal": "رسمي",
-    "party": "حفلات", "evening": "سهرة",
-    "workwear": "ملابس عمل", "loungewear": "ملابس منزلية",
-    "sporty": "رياضي", "vintage": "كلاسيكي",
-    "bohemian": "بوهيمي", "preppy": "بريبي",
-    "streetwear": "ستريت وير", "chic": "شيك",
-    "elegant": "أنيق", "sexy": "جذاب",
-    "cute": "ظريف", "trendy": "عصري",
-    "classic": "كلاسيكي", "modern": "عصري",
-    "minimalist": "بسيط", "simple": "بسيط",
-    
-    # أكمام وأجزاء
+    # أكمام
     "long sleeve": "أكمام طويلة", "short sleeve": "أكمام قصيرة",
     "sleeveless": "بلا أكمام", "cap sleeve": "كم قصير",
     "puff sleeve": "كم منفوخ", "bell sleeve": "كم جرس",
     "bishop sleeve": "كم واسع", "raglan sleeve": "كم راجلان",
-    "drop shoulder": "كتف منخفض", "crop": "قصير",
-    "cropped": "قصير", "mini": "قصير",
-    "midi": "طول الركبة", "maxi": "طويل",
-    "high waist": "خصر عالي", "low waist": "خصر منخفض",
-    "wide leg": "رجل واسعة", "straight leg": "رجل مستقيمة",
-    "tapered": "ضيقة من الأسفل", "bootcut": "قصة بوت",
-    "skinny": "ضيقة جداً", "flare": "منفوش",
+    "drop shoulder": "كتف منخفض",
     
-    # تفاصيل
-    "zipper": "سحاب", "button": "زرار",
-    "button front": "أزرار أمامية", "drawstring": "رباط",
-    "belted": "بحزام", "pocket": "جيب",
-    "hooded": "بهودي", "collar": "ياقة",
-    "lapel": "ياقة", "frill": "كشكشة",
-    "ruffle": "كشكشة", "bow": "فيونكة",
-    "strap": "حمالة", "spaghetti strap": "حمالة رفيعة",
-    "cut out": "قصات", "slit": "شق",
+    # أنماط
+    "casual": "كاجوال", "formal": "رسمي", "party": "حفلات",
+    "evening": "سهرة", "vintage": "فينتاج", "bohemian": "بوهو",
+    "preppy": "بريبي", "streetwear": "ستريت وير",
+    "elegant": "أنيق", "chic": "شيك", "trendy": "ترندي",
+    "minimalist": "مينيمال", "classic": "كلاسيك",
     
-    # أحذية
-    "high heels": "كعب عالي", "platform": "platform",
-    "wedge": "wedge", "stiletto": "ستيليتو",
-    "block heel": "كعب سميك", "flat shoes": "حذاء مسطح",
-    "loafer": "loafer", "ankle boot": "بوت كاحل",
-    "knee high": "طويل للركبة", "thigh high": "فوق الركبة",
+    # أحذية تفاصيل
+    "platform": "بلاتفورم", "wedge": "ويدج", "stiletto": "ستيليتو",
+    "block heel": "كعب سميك", "knee high": "للركبة",
+    "thigh high": "فوق الركبة", "ankle strap": "حمالة كاحل",
     
-    # إلكترونيات
+    # إلكترونيات تفاصيل
     "wireless": "لاسلكي", "bluetooth": "بلوتوث",
-    "noise cancelling": "عزل الضوضاء", "noise canceling": "عزل الضوضاء",
-    "fast charging": "شحن سريع", "quick charge": "شحن سريع",
-    "waterproof": "مقاوم للماء", "water resistant": "مقاوم للماء",
-    "shockproof": "مضاد للصدمات", "dustproof": "مضاد للغبار",
+    "noise cancelling": "عزل ضوضاء", "fast charging": "شحن سريع",
+    "waterproof": "مقاوم للماء",
     
     # أطفال
-    "baby girl": "بنت", "baby boy": "ولد",
-    "toddler girl": "بنت صغيرة", "toddler boy": "ولد صغير",
+    "baby": "بيبي", "toddler": "طفل صغير", "infant": "رضيع",
+}
+
+# كلمات نستبعدها خالص
+SKIP_WORDS = {
+    "shein", "for", "with", "and", "the", "a", "an", "in", "on", "at", "to", "of",
+    "by", "from", "up", "out", "new", "hot", "sale", "best", "top", "fashion",
+    "style", "look", "trend", "collection", "brand", "designer", "premium",
+    "quality", "cheap", "affordable", "luxury", "exclusive", "limited",
+    "edition", "season", "spring", "summer", "autumn", "fall", "winter",
+    "2023", "2024", "2025", "2026", "pcs", "pc", "pack", "set", "piece",
+    "pieces", "x", "xl", "xxl", "s", "m", "l", "xs", "xxxl", "one size",
+    "plus size", "size", "cm", "mm", "inch", "inches", "ml", "g", "kg",
+    "oz", "lb", "gb", "tb", "mb", "mah", "w", "v", "hz",
+    "usd", "eur", "gbp", "sar", "aed", "qar", "kwd", "egp",
+    "off", "discount", "clearance", "deal", "promo",
+    "women", "woman", "ladies", "lady", "female", "men", "man", "male",
+    "girls", "girl", "boys", "boy", "kids", "children", "child", "unisex",
+    "y2k", "90s", "80s", "70s", "retro",
+}
+
+# كلمات بتدل على الجنس (للتصنيف بس، مش للوصف)
+GENDER_MARKERS = {
+    "women", "woman", "ladies", "lady", "female", "womens", "women's",
+    "men", "man", "male", "mens", "men's", "gentleman", "gentlemen",
+    "girls", "girl", "boys", "boy", "kids", "children", "child",
+    "baby", "toddler", "infant", "newborn", "youth", "teen",
 }
 
 
-def detect_product_category(product_name):
-    name_lower = product_name.lower()
+def detect_product_category(title):
+    title_lower = title.lower()
     for category, keywords in CATEGORY_KEYWORDS.items():
         for keyword in keywords:
-            if keyword in name_lower:
+            if keyword in title_lower:
                 return category
     return "general"
 
 
-def detect_gender_and_age(title):
+def detect_gender(title):
     title_lower = title.lower()
+    has_female = any(w in title_lower for w in ["women", "woman", "ladies", "lady", "female", "womens", "women's", "girl's", "girls'", "dress", "skirt", "blouse", "lingerie", "bra", "panty", "heels", "handbag", "clutch", "maternity", "bride", "bridal"])
+    has_male = any(w in title_lower for w in ["men", "man", "male", "mens", "men's", "boy's", "boys'", "suit", "blazer", "tuxedo", "bow tie", "cufflinks", "suspenders", "trousers", "chinos", "aftershave", "cologne", "beard", "mustache"])
+    has_kids = any(w in title_lower for w in ["kids", "children", "child", "baby", "toddler", "infant", "newborn", "onesie", "bib", "diaper", "stroller", "crib", "pacifier"])
     
-    kids_score = sum(weight for kw, weight in KIDS_KEYWORDS.items() if kw in title_lower)
-    female_score = sum(weight for kw, weight in FEMALE_KEYWORDS.items() if kw in title_lower)
-    male_score = sum(weight for kw, weight in MALE_KEYWORDS.items() if kw in title_lower)
-    
-    # منطق خاص للسياق
-    if "girls" in title_lower or "girl" in title_lower:
-        if any(k in title_lower for k in ["kids", "children", "child", "baby", "toddler"]):
-            kids_score += 5
-        else:
-            female_score += 4
-    
-    if "boys" in title_lower or "boy" in title_lower:
-        if any(k in title_lower for k in ["kids", "children", "child", "baby", "toddler"]):
-            kids_score += 5
-        else:
-            male_score += 4
-    
-    scores = [("kids", kids_score), ("female", female_score), ("male", male_score)]
-    scores.sort(key=lambda x: x[1], reverse=True)
-    
-    best, best_score = scores[0]
-    second = scores[1][1]
-    
-    if best_score > 0 and best_score >= second + 3:
-        return best
-    if best_score == 0:
-        return "neutral"
+    # أولوية الأطفال لو فيه كلمات أطفال واضحة
+    if has_kids and (has_female or has_male or "girls" in title_lower or "boys" in title_lower):
+        return "kids"
+    if has_kids:
+        return "kids"
+    if has_female and not has_male:
+        return "female"
+    if has_male and not has_female:
+        return "male"
+    if has_female and has_male:
+        return "neutral"  # unisex
     return "neutral"
 
 
-def fix_english_terms(text):
-    """نستبدل الكلمات الإنجليزية الشائعة بترجماتها العربية"""
-    text_lower = text.lower()
-    result = text
+def extract_keywords(title):
+    """
+    تستخرج الكلمات المهمة من العنوان وترتبهم:
+    [نوع المنتج, خامة/قصة, لون, تفاصيل]
+    """
+    # نظف
+    clean = title.lower()
+    clean = re.sub(r'[^\w\s\-]', ' ', clean)  # شيل علامات الترقيم
+    clean = re.sub(r'\s+', ' ', clean).strip()
+    words = clean.split()
     
-    # نرتب الكلمات حسب الطول (الأطول أولاً عشان ما نستبدلش جزء من كلمة)
-    sorted_fixes = sorted(ENGLISH_FIXES.items(), key=lambda x: len(x[0]), reverse=True)
+    found = []
+    i = 0
+    while i < len(words):
+        # جرب كلمتين مع بعض أول (مثلاً slim fit, long sleeve)
+        if i + 1 < len(words):
+            two = f"{words[i]} {words[i+1]}"
+            if two in WORDS:
+                found.append((two, WORDS[two]))
+                i += 2
+                continue
+            # كلمات مركبة بشرطة
+            two_dash = f"{words[i]}-{words[i+1]}"
+            if two_dash in WORDS:
+                found.append((two_dash, WORDS[two_dash]))
+                i += 2
+                continue
+        
+        # جرب كلمة واحدة
+        w = words[i]
+        if w in WORDS:
+            found.append((w, WORDS[w]))
+        elif w not in SKIP_WORDS and w not in GENDER_MARKERS:
+            # كلمة مش معروفة — نترجمها لو كانت مش رقم
+            if not re.match(r'^\d+$', w) and len(w) > 2:
+                # نترجمها بس نحطها في النهاية (أقل أهمية)
+                tr = translate_word(w)
+                if tr and tr != w:
+                    found.append((w, tr))
+        i += 1
     
-    for eng, ar in sorted_fixes:
-        # نستبدل ب ignoring case
-        pattern = re.compile(re.escape(eng), re.IGNORECASE)
-        result = pattern.sub(ar, result)
-    
-    return result
+    return found
 
 
-def clean_title(title):
-    """نشيل الكلمات المش مهمة من العنوان"""
-    # شيل ماركات ومواقع
-    cleaned = re.sub(r'\bSHEIN\b|\bAmazon\b|\bAliExpress\b|\beBay\b|\bWish\b|\bZAFUL\b', '', title, flags=re.IGNORECASE)
-    # شيل مقاسات ومواصفات تقنية
-    cleaned = re.sub(r'\b\d+\s*(ml|g|kg|cm|mm|inch|inches|oz|lb|ltr|gb|mb|tb|mah|w|v)\b', '', cleaned, flags=re.IGNORECASE)
-    # شيل أسعار وخصومات
-    cleaned = re.sub(r'\b(USD|EUR|GBP|SAR|AED|QAR|KWD|EGP)\s*\d+[\.,]?\d*\b', '', cleaned, flags=re.IGNORECASE)
-    cleaned = re.sub(r'\b\d{1,2}%?\s*off?\b', '', cleaned, flags=re.IGNORECASE)
-    # شيل أرقام صرف (1x, 2x, 3pcs...)
-    cleaned = re.sub(r'\b\d+\s*(x|pcs|pc|pack|set|pieces|piece)\b', '', cleaned, flags=re.IGNORECASE)
-    # شيل رموز
-    cleaned = re.sub(r'[\(\)\[\]\{\}\|]', ' ', cleaned)
-    # شيل كلمات عامة مش مهمة
-    cleaned = re.sub(r'\bfor\b|\bwith\b|\band\b|\bthe\b|\ba\b|\ban\b|\bin\b|\bon\b|\bat\b|\bto\b|\bof\b', '', cleaned, flags=re.IGNORECASE)
-    # مسافات زيادة
-    cleaned = re.sub(r'\s+', ' ', cleaned).strip()
-    return cleaned
+def translate_word(word):
+    """ترجمة كلمة واحدة"""
+    try:
+        url = "https://translate.googleapis.com/translate_a/single"
+        params = {"client": "gtx", "sl": "en", "tl": "ar", "dt": "t", "q": word}
+        headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"}
+        r = requests.get(url, params=params, headers=headers, timeout=5)
+        if r.status_code == 200:
+            data = r.json()
+            if data and data[0]:
+                return data[0][0][0]
+    except:
+        pass
+    return word
+
+
+def build_description(keywords, gender):
+    """
+    تبني وصف من الكلمات المستخرجة بترتيب منطقي:
+    نوع المنتج + (جنس) + لون/خامة + تفاصيل
+    """
+    if not keywords:
+        return "منتج مميز"
+    
+    # نفصل الكلمات حسب نوعها
+    types = []      # نوع المنتج (فستان، قميص...)
+    colors = []     # ألوان
+    materials = []  # خامات
+    fits = []       # قصات
+    necks = []      # رقاب
+    sleeves = []    # أكمام
+    details = []    # تفاصيل عامة
+    patterns = []   # أنماط (كاجوال، رسمي...)
+    others = []     # الباقي
+    
+    type_keywords = {"فستان", "فستان سهرة", "قميص", "بلوزة", "توب", "تيشيرت", "هودي", "سويت شيرت", "جاكيت", "معطف", "بليزر", "كارديجان", "سترة", "بولوفر", "بنطلون", "جينز", "شينو", "شورت", "تنورة", "ليقنز", "جمبسوت", "رومبر", "بدي", "أوفرول", "جوارب", "جورب شفاف", "شرابات", "حذاء", "سنيكرز", "حذاء رياضي", "بوت", "بوت كاحل", "صندل", "شبشب", "كعب عالي", "كعب", "باليرينا", "لوفر", "أوكسفورد", "شنطة", "شنطة يد", "شنطة ظهر", "توت باج", "كلتش", "كروس بودي", "محفظة", "حزام", "ربطة عنق", "وشاح", "قفازات", "قبعة", "كاب", "نظارة شمسية", "ساعة", "مجوهرات", "عقد", "سوار", "خاتم", "حلق", "عطر", "كولونيا", "ميك أب", "أحمر شفاه", "لمع شفاه", "كريم أساس", "ماسكارا", "آيلاينر", "ظل عيون", "بلاشر", "هايلايتر", "كونسيلر", "برايمر", "فيكس سبري", "كريم", "لوشن", "سيروم", "تونر", "مرطب", "واقي شمس", "شامبو", "بلسم", "ماسك", "صابون", "فرشاة", "هاتف", "آيفون", "سامسونج", "لاب توب", "كمبيوتر", "تابلت", "آيباد", "أيربودز", "سماعات رأس", "سماعات أذن", "كاميرا", "تلفزيون", "شاشة", "كيبورد", "ماوس", "شاحن", "كيبل", "باور بنك", "بطارية", "ساعة ذكية", "سماعة", "راوتر", "ثلاجة", "غسالة", "مكنسة كهربائية", "مكيف", "دفاية", "مروحة", "خلاط", "عجانة", "فرن", "مايكرويف", "محمصة", "غلاية", "ماكينة قهوة", "مكواة", "مجفف شعر", "كرسي", "طاولة", "مكتب", "سرير", "كنبة", "لمبة", "مرآة", "سجادة", "ستارة", "مخدة", "جهاز مشي", "دمبل", "حصيرة يوغا", "دراجة", "كرة", "جيم"}
+    color_keywords = {"أسود", "أبيض", "أحمر", "أزرق", "أخضر", "أصفر", "وردي", "بنفسجي", "برتقالي", "بني", "بيج", "رمادي", "كحلي", "عنابي", "زيتي", "كاكي", "كريمي", "عاجي", "ذهبي", "فضي", "روز جولد", "متعدد الألوان", "سادة", "مطبوع", "زهري", "مخطط", "مربعات", "منقط", "تاي داي", "تمويه", "تدرج لوني"}
+    material_keywords = {"جينز", "جلد", "شمواه", "مخمل", "ساتان", "حرير", "قطن", "كتان", "صوف", "محبوك", "شبك", "دانتيل", "شيفون", "أورجانزا", "ترتر"}
+    fit_keywords = {"ضيق", "عادي", "واسع", "سكيني", "مستقيم", "رجل واسعة", "منفوش", "بوت كت", "قصير", "ميني", "ميدي", "ماكسي", "خصر عالي", "خصر منخفض", "ضيق", "قصة A", "ببلوم", "لف", "اكتاف مكشوفة", "كتف واحد", "كتف مكشوف", "غير متناظر", "متعدد الطبقات"}
+    neck_keywords = {"رقبة V", "رقبة دائرية", "رقبة مربعة", "هالتر", "رقبة عالية", "رقبة نصف عالية", "رقبة سلحفاة", "رقبة بولو", "رقبة واسعة"}
+    sleeve_keywords = {"أكمام طويلة", "أكمام قصيرة", "بلا أكمام", "كم قصير", "كم منفوخ", "كم جرس", "كم واسع", "كم راجلان", "كتف منخفض"}
+    pattern_keywords = {"كاجوال", "رسمي", "حفلات", "سهرة", "فينتاج", "بوهو", "بريبي", "ستريت وير", "أنيق", "شيك", "ترندي", "مينيمال", "كلاسيك"}
+    
+    for eng, ar in keywords:
+        if ar in type_keywords:
+            types.append(ar)
+        elif ar in color_keywords:
+            colors.append(ar)
+        elif ar in material_keywords:
+            materials.append(ar)
+        elif ar in fit_keywords:
+            fits.append(ar)
+        elif ar in neck_keywords:
+            necks.append(ar)
+        elif ar in sleeve_keywords:
+            sleeves.append(ar)
+        elif ar in pattern_keywords:
+            patterns.append(ar)
+        else:
+            details.append(ar)
+    
+    # نبني الجملة
+    parts = []
+    
+    # 1. نوع المنتج (آخر نوع لقيناه عشان يكون الأدق)
+    if types:
+        parts.append(types[-1])
+    
+    # 2. الجنس
+    gender_word = {"female": "نسائي", "male": "رجالي", "kids": "أطفال", "neutral": ""}
+    if gender in gender_word and gender_word[gender]:
+        parts.append(gender_word[gender])
+    
+    # 3. لون/خامة/قصة
+    desc_parts = []
+    if colors:
+        desc_parts.append(colors[0])
+    if materials:
+        desc_parts.append(materials[0])
+    if fits:
+        desc_parts.append(fits[0])
+    if necks:
+        desc_parts.append(necks[0])
+    if sleeves:
+        desc_parts.append(sleeves[0])
+    if patterns:
+        desc_parts.append(patterns[0])
+    if details:
+        # ناخد أول تفصيلين بس
+        desc_parts.extend(details[:2])
+    
+    if desc_parts:
+        parts.extend(desc_parts)
+    
+    # ندمج
+    result = " ".join(parts)
+    
+    # تنظيف نهائي
+    result = re.sub(r'\s+', ' ', result).strip()
+    
+    return result if result else "منتج مميز"
 
 
 def summarize_product(title):
-    """
-    يلخص اسم المنتج:
-    1. ينظف العنوان
-    2. يستبدل الكلمات الإنجليزية بعربي
-    3. يترجم الباقي
-    4. يختصر وينظم
-    """
-    # 1. نظف
-    cleaned = clean_title(title)
-    
-    # 2. استبدل الكلمات الإنجليزية المعروفة
-    fixed = fix_english_terms(cleaned)
-    
-    # 3. ترجم الباقي
-    translated = translate_to_arabic(fixed)
-    
-    # 4. نظف بعد الترجمة
-    translated = re.sub(r'[\(\)\[\]\{\}\|]', ' ', translated)
-    translated = re.sub(r'\s+', ' ', translated).strip()
-    
-    # 5. اختصر لأهم 5-7 كلمات
-    words = translated.split()
-    if len(words) > 7:
-        translated = ' '.join(words[:7])
-    
-    # 6. لو فاضي، رجع ترجمة مختصرة للعنوان الأصلي
-    if not translated or len(translated) < 3:
-        raw_translated = translate_to_arabic(title)
-        words = raw_translated.split()
-        translated = ' '.join(words[:5])
-    
-    # 7. ضيف tag الجنس/العمر في البداية
-    gender_age = detect_gender_and_age(title)
-    tag_map = {
-        "kids": "أطفال",
-        "female": "نسائي",
-        "male": "رجالي",
-        "neutral": ""
-    }
-    tag = tag_map.get(gender_age, "")
-    
-    # ندمج التاج في البداية لو مش موجود
-    if tag and tag not in translated:
-        # لو الكلمة الأولى هي نوع المنتج، نحط التاج بعدها
-        words = translated.split()
-        if len(words) >= 2:
-            translated = f"{words[0]} {tag} " + " ".join(words[1:])
-        else:
-            translated = f"{translated} {tag}"
-    
-    return translated.strip()
+    gender = detect_gender(title)
+    keywords = extract_keywords(title)
+    return build_description(keywords, gender)
 
 
 def translate_to_arabic(text):
@@ -515,7 +586,7 @@ TEMPLATES_DB = {
 }
 
 
-def get_templates(category, gender_age, product_name):
+def get_templates(category, gender, product_name):
     global _last_used_templates
     cat_data = TEMPLATES_DB.get(category, TEMPLATES_DB["general"])
     
@@ -523,11 +594,11 @@ def get_templates(category, gender_age, product_name):
         templates = cat_data
     else:
         templates = cat_data.get(
-            gender_age, 
+            gender, 
             cat_data.get("neutral", cat_data.get("female", list(cat_data.values())[0]))
         )
     
-    key = f"{category}_{gender_age}"
+    key = f"{category}_{gender}"
     last_used = _last_used_templates.get(key)
     
     available = [t for t in templates if t != last_used]
@@ -629,12 +700,12 @@ def get_shein_product(url):
                 continue
 
             category = detect_product_category(title)
-            gender_age = detect_gender_and_age(title)
-            print(f"  SUCCESS: category={category}, gender_age={gender_age}, title={title[:40]}...")
+            gender = detect_gender(title)
+            print(f"  SUCCESS: category={category}, gender={gender}, title={title[:40]}...")
 
             return {
                 "category": category,
-                "gender_age": gender_age,
+                "gender": gender,
                 "full_title": title,
                 "image": image,
             }
@@ -649,12 +720,13 @@ def get_shein_product(url):
 
 def generate_post(product_data, original_url):
     category = product_data.get("category", "general")
-    gender_age = product_data.get("gender_age", "neutral")
+    gender = product_data.get("gender", "neutral")
     title = product_data.get("full_title", "")
 
+    # ← الجديد: نستخرج وصف منظم من الكلمات المفتاحية
     product_name = summarize_product(title)
 
-    post = get_templates(category, gender_age, product_name)
+    post = get_templates(category, gender, product_name)
     post += "\n\n🛒 رابط الشراء:\n" + original_url
 
     return post
