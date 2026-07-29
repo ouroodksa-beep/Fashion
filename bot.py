@@ -13,7 +13,7 @@ bot = telebot.TeleBot(TOKEN)
 
 PROXY_URL = os.environ.get("PROXY_URL")
 
-# ─── قاموس شامل ومعدل: إنجليزي ← عربي ───
+# ─── قاموس: إنجليزي ← عربي ───
 WORDS = {
     # أنواع الملابس
     "dress": "فستان", "frock": "فستان", "gown": "فستان سهرة",
@@ -71,7 +71,7 @@ WORDS = {
     "gold": "ذهبي", "silver": "فضي", "rose gold": "روز جولد",
     "multicolor": "متعدد الألوان", "colorful": "متعدد الألوان",
     "printed": "مطبوع", "floral": "زهري", "striped": "مخطط",
-    "checked": "مربعات", "plaid": "مربعات", "polka dot": "منقط",
+    "checked": "كاروهات", "plaid": "كاروهات", "polka dot": "منقط",
     "solid": "سادة", "plain": "سادة",
     
     # قصات وأنماط
@@ -89,17 +89,19 @@ WORDS = {
     "long sleeve": "أكمام طويلة", "short sleeve": "أكمام قصيرة",
     "sleeveless": "بلا أكمام", "puff sleeve": "أكمام منفوخة",
     "boho": "بوهيمي", "casual": "كاجوال",
+    
+    # عدد القطع
+    "set": "طقم", "pack": "طقم", "bundle": "طقم",
 }
 
-# كلمات حشو وترجمات عشوائية يتم حذفها تماماً
 SKIP_WORDS = {
     "shein", "for", "with", "and", "the", "a", "an", "in", "on", "at", "to", "of",
     "by", "from", "up", "out", "new", "hot", "sale", "best", "top", "fashion",
     "style", "look", "trend", "collection", "brand", "designer", "premium",
     "quality", "cheap", "affordable", "luxury", "exclusive", "limited",
     "edition", "season", "spring", "summer", "autumn", "fall", "winter",
-    "2023", "2024", "2025", "2026", "pcs", "pc", "pack", "set", "piece",
-    "pieces", "x", "xl", "xxl", "s", "m", "l", "xs", "xxxl", "one size",
+    "2023", "2024", "2025", "2026",
+    "x", "xl", "xxl", "s", "m", "l", "xs", "xxxl", "one size",
     "plus size", "size", "cm", "mm", "inch", "inches", "ml", "g", "kg",
     "usd", "eur", "gbp", "sar", "aed", "qar", "kwd", "egp", "off", "discount",
     "office", "travel", "sexy", "pure", "group", "beauty", "color", "sizing",
@@ -108,25 +110,85 @@ SKIP_WORDS = {
     "خليط", "زائف", "مترهل", "مضلع", "رائع", "هالة", "منفوش"
 }
 
-GENDER_MARKERS = {
-    "women", "woman", "ladies", "lady", "female", "womens", "women's",
-    "men", "man", "male", "mens", "men's", "gentleman", "gentlemen",
-    "girls", "girl", "boys", "boy", "kids", "children", "child",
-    "baby", "toddler", "infant", "newborn", "youth", "teen",
-}
+# ─── تصنيفات الأنواع ───
+TOP_TYPES = {"فستان", "فستان سهرة", "قميص", "بلوزة", "توب", "تيشيرت", "هودي",
+             "سويت شيرت", "جاكيت", "معطف", "بليزر", "كارديجان", "سترة", "بلوفر",
+             "جمبسوت", "رومبر", "بدي", "أوفرول"}
+BOTTOM_TYPES = {"بنطلون", "جينز", "شينو", "شورت", "تنورة", "ليقنز"}
+SHOE_TYPES = {"حذاء", "سنيكرز", "صندل", "كعب عالي", "كعب", "باليرينا", "لوفر",
+              "أوكسفورد", "بوت", "بوت كاحل", "شبشب", "حذاء رياضي"}
+ACCESSORY_TYPES = {"شنطة", "شنطة يد", "شنطة ظهر", "توت باج", "كلتش", "كروس بودي",
+                   "محفظة", "حزام", "ربطة عنق", "وشاح", "قفازات", "قبعة", "كاب",
+                   "نظارة شمسية", "ساعة", "مجوهرات", "عقد", "سوار", "خاتم", "حلق", "مرآة"}
+BEAUTY_TYPES = {"عطر", "كولونيا", "مكياج", "أحمر شفاه", "ملمع شفاه", "كريم أساس",
+                "ماسكارا", "آيلاينر", "ظل عيون", "بلاشر", "هايلايتر", "كونسيلر",
+                "برايمر", "مثبت مكياج", "كريم", "لوشن", "سيروم", "تونر", "مرطب",
+                "واقي شمس", "شامبو", "بلسم", "ماسك", "صابون", "فرشاة"}
+
+FEMALE_EXCLUSIVE = {"فستان", "فستان سهرة", "بلوزة", "تنورة", "كعب عالي", "كعب",
+                    "باليرينا", "شنطة يد", "كلتش", "توت باج", "كروس بودي", "بلاشر",
+                    "أحمر شفاه", "ملمع شفاه", "ماسكارا", "آيلاينر", "ظل عيون", "هايلايتر",
+                    "كونسيلر", "برايمر", "مثبت مكياج", "رومبر", "بدي"}
+MALE_EXCLUSIVE = {"ربطة عنق", "بليزر", "أوكسفورد", "لوفر"}
 
 
-def detect_gender(title):
-    title_lower = title.lower()
-    has_female = any(w in title_lower for w in ["women", "woman", "ladies", "lady", "female", "womens", "women's", "girl's", "girls'", "dress", "skirt", "blouse", "heels", "handbag", "blush", "lipstick"])
-    has_male = any(w in title_lower for w in ["men", "man", "male", "mens", "men's", "boy's", "boys'", "suit", "tuxedo", "chinos"])
-    has_kids = any(w in title_lower for w in ["kids", "children", "child", "baby", "toddler", "infant", "newborn"])
+def extract_quantity(title):
+    t = title.lower()
+    patterns = [
+        r'(\d+)\s*(?:pc|pcs|piece|pieces)\b',
+        r'(\d+)\s*-\s*(?:pc|pcs|piece|pieces)\b',
+        r'\b(?:set|pack|bundle)\s+of\s+(\d+)',
+        r'\b(\d+)\s*(?:set|pack|bundle)\b',
+    ]
+    for pat in patterns:
+        m = re.search(pat, t)
+        if m:
+            n = int(m.group(1))
+            if n == 1:
+                return None
+            elif n == 2:
+                return "طقم"
+            else:
+                return f"طقم {n} قطع"
+    if re.search(r'\b(?:set|pack|bundle)\b', t):
+        return "طقم"
+    return None
+
+
+def detect_gender(title, main_type=""):
+    t = title.lower()
+    female = ["women", "woman", "ladies", "lady", "female", "womens", "women's",
+              "girl's", "girls'", "dress", "skirt", "blouse", "heels", "handbag",
+              "blush", "lipstick", "gown", "frock", "tights", "leggings", "bodysuit",
+              "romper", "jumpsuit", "cardigan", "clutch", "tote", "crossbody",
+              "earrings", "necklace", "bracelet", "maxi", "midi", "mini", "bra"]
+    male = ["men", "man", "male", "mens", "men's", "boy's", "boys'",
+            "suit", "tuxedo", "chinos", "oxfords", "loafers", "tie", "belt", "blazer"]
+    kids = ["kids", "children", "child", "baby", "toddler", "infant", "newborn"]
     
-    if has_kids:
+    def has_word(text, lst):
+        for w in lst:
+            if re.search(r'\b' + re.escape(w) + r'\b', text):
+                return True
+        return False
+    
+    has_f = has_word(t, female)
+    has_m = has_word(t, male)
+    has_k = has_word(t, kids)
+    
+    if has_k:
+        if has_f and not has_m:
+            return "بنات"
+        if has_m and not has_f:
+            return "أولاد"
         return "أطفال"
-    if has_female and not has_male:
+    
+    if main_type in FEMALE_EXCLUSIVE or main_type in MALE_EXCLUSIVE:
+        return ""
+    
+    if has_f and not has_m:
         return "نسائي"
-    if has_male and not has_female:
+    if has_m and not has_f:
         return "رجالي"
     return ""
 
@@ -144,7 +206,12 @@ def extract_keywords(title):
         if words[i] in SKIP_WORDS:
             i += 1
             continue
-            
+        if i + 2 < len(words):
+            three = f"{words[i]} {words[i+1]} {words[i+2]}"
+            if three in WORDS:
+                found.append(WORDS[three])
+                i += 3
+                continue
         if i + 1 < len(words):
             two = f"{words[i]} {words[i+1]}"
             if two in WORDS:
@@ -156,54 +223,145 @@ def extract_keywords(title):
                 found.append(WORDS[two_dash])
                 i += 2
                 continue
-        
         w = words[i]
         if w in WORDS:
             found.append(WORDS[w])
         i += 1
-    
     return found
 
 
 def build_description(title):
-    gender = detect_gender(title)
     keywords = extract_keywords(title)
-    
     if not keywords:
         return "منتج مميز من شي إن"
     
-    type_keywords = {"فستان", "فستان سهرة", "قميص", "بلوزة", "توب", "تيشيرت", "هودي", "سويت شيرت", "جاكيت", "معطف", "بليزر", "كارديجان", "سترة", "بلوفر", "بنطلون", "جينز", "شورت", "تنورة", "ليقنز", "جمبسوت", "حذاء", "سنيكرز", "صندل", "كعب عالي", "كعب", "شنطة", "شنطة يد", "مرآة", "عطر", "مكياج", "أحمر شفاه", "ملمع شفاه", "كريم أساس", "ماسكارا", "بلاشر", "هايلايتر", "سيروم", "مرطب"}
-    color_keywords = {"أسود", "أبيض", "أحمر", "أزرق", "أخضر", "أصفر", "وردي", "بنفسجي", "برتقالي", "بني", "بيج", "رمادي", "كحلي", "عنابي", "زيتي", "ذهبي", "فضي", "سادة", "مطبوع", "زهري", "مخطط", "مربعات"}
-    material_keywords = {"جينز", "جلد", "شمواه", "مخمل", "ساتان", "حرير", "قطن", "كتان", "صوف", "محبوك", "دانتيل", "شيفون", "ترتر"}
+    type_kw = {"فستان", "فستان سهرة", "قميص", "بلوزة", "توب", "تيشيرت", "هودي",
+               "سويت شيرت", "جاكيت", "معطف", "بليزر", "كارديجان", "سترة", "بلوفر",
+               "بنطلون", "جينز", "شينو", "شورت", "تنورة", "ليقنز", "جمبسوت", "رومبر",
+               "بدي", "أوفرول", "حذاء", "سنيكرز", "صندل", "كعب عالي", "كعب", "باليرينا",
+               "لوفر", "أوكسفورد", "بوت", "بوت كاحل", "شبشب", "حذاء رياضي",
+               "شنطة", "شنطة يد", "شنطة ظهر", "توت باج", "كلتش", "كروس بودي",
+               "محفظة", "حزام", "ربطة عنق", "وشاح", "قفازات", "قبعة", "كاب",
+               "نظارة شمسية", "ساعة", "مجوهرات", "عقد", "سوار", "خاتم", "حلق", "مرآة",
+               "عطر", "كولونيا", "مكياج", "أحمر شفاه", "ملمع شفاه", "كريم أساس",
+               "ماسكارا", "آيلاينر", "ظل عيون", "بلاشر", "هايلايتر", "كونسيلر",
+               "برايمر", "مثبت مكياج", "كريم", "لوشن", "سيروم", "تونر", "مرطب",
+               "واقي شمس", "شامبو", "بلسم", "ماسك", "صابون", "فرشاة",
+               "جوارب", "جورب شفاف", "شرابات"}
+    color_kw = {"أسود", "أبيض", "أحمر", "أزرق", "أخضر", "أصفر", "وردي", "بنفسجي",
+                "برتقالي", "بني", "بيج", "رمادي", "كحلي", "عنابي", "زيتي", "كاكي",
+                "كريمي", "عاجي", "ذهبي", "فضي", "روز جولد", "متعدد الألوان", "سادة",
+                "مطبوع", "زهري", "مخطط", "كاروهات", "منقط"}
+    material_kw = {"جينز", "جلد", "شمواه", "مخمل", "ساتان", "حرير", "قطن", "كتان",
+                   "صوف", "محبوك", "شبك", "دانتيل", "شيفون", "أورجانزا", "ترتر"}
+    fit_kw = {"ضيق", "عادي", "واسع", "سكيني", "مستقيم", "رجل واسعة", "منفوش", "قصير",
+              "ميني", "ميدي", "ماكسي", "خصر عالي", "خصر منخفض"}
+    neck_kw = {"رقبة V", "رقبة دائرية", "رقبة بولو", "بولو"}
+    sleeve_kw = {"أكمام طويلة", "أكمام قصيرة", "بلا أكمام", "أكمام منفوخة"}
+    detail_kw = {"مكشكش", "مطوي", "كشكشة", "مطرز", "سحاب", "أزرار", "بوهيمي", "كاجوال"}
     
-    types = [k for k in keywords if k in type_keywords]
-    colors = [k for k in keywords if k in color_keywords]
-    materials = [k for k in keywords if k in material_keywords]
-    details = [k for k in keywords if k not in type_keywords and k not in color_keywords and k not in material_keywords]
+    types = [k for k in keywords if k in type_kw]
+    colors = [k for k in keywords if k in color_kw]
+    materials = [k for k in keywords if k in material_kw]
+    fits = [k for k in keywords if k in fit_kw]
+    necks = [k for k in keywords if k in neck_kw]
+    sleeves = [k for k in keywords if k in sleeve_kw]
+    details = [k for k in keywords if k in detail_kw]
     
-    details = list(dict.fromkeys(details))
+    main_type = max(types, key=len) if types else ""
     
+    is_top = main_type in TOP_TYPES
+    is_bottom = main_type in BOTTOM_TYPES
+    is_shoe = main_type in SHOE_TYPES
+    is_accessory = main_type in ACCESSORY_TYPES
+    is_beauty = main_type in BEAUTY_TYPES
+    
+    # ─── فلترة منطقية: ممنوع غلطات ───
+    if is_bottom:
+        sleeves = []
+        necks = []
+    if is_shoe or is_accessory or is_beauty:
+        sleeves = []
+        necks = []
+        fits = [f for f in fits if f not in {"قصير", "ميني", "ميدي", "ماكسي", "خصر عالي", "خصر منخفض"}]
+    if is_accessory or is_beauty:
+        fits = []
+    
+    gender = detect_gender(title, main_type)
+    quantity = extract_quantity(title)
+    
+    # ─── بناء الوصف حسب الفئة ───
     parts = []
     
-    if types:
-        parts.append(types[-1])
+    if is_top:
+        if quantity:   parts.append(quantity)
+        if fits:       parts.append(fits[0])
+        if main_type:  parts.append(main_type)
+        if gender:     parts.append(gender)
+        if colors:     parts.append(colors[0])
+        if materials:  parts.append(materials[0])
+        if necks:      parts.append(necks[0])
+        if sleeves:    parts.append(sleeves[0])
+        valid = []
+        for d in details:
+            if d == "أزرار" and main_type in {"جاكيت", "كارديجان", "معطف", "بليزر", "قميص"}:
+                continue
+            if d == "كاجوال" and len(details) > 1:
+                continue
+            valid.append(d)
+        parts.extend(valid[:2])
+        
+    elif is_bottom:
+        if quantity:   parts.append(quantity)
+        if fits:       parts.append(fits[0])
+        if main_type:  parts.append(main_type)
+        if gender:     parts.append(gender)
+        if colors:     parts.append(colors[0])
+        if materials:  parts.append(materials[0])
+        valid = []
+        for d in details:
+            if d == "كاجوال" and len(details) > 1:
+                continue
+            valid.append(d)
+        parts.extend(valid[:2])
+        
+    elif is_shoe:
+        if quantity:   parts.append(quantity)
+        if main_type:  parts.append(main_type)
+        if gender:     parts.append(gender)
+        if colors:     parts.append(colors[0])
+        if materials:  parts.append(materials[0])
+        parts.extend(details[:2])
+        
+    elif is_accessory:
+        if quantity:   parts.append(quantity)
+        if main_type:  parts.append(main_type)
+        if colors:     parts.append(colors[0])
+        if materials:  parts.append(materials[0])
+        parts.extend(details[:2])
+        
+    elif is_beauty:
+        if quantity:   parts.append(quantity)
+        if main_type:  parts.append(main_type)
+        if colors:     parts.append(colors[0])
+        parts.extend(details[:2])
+        
     else:
-        parts.append("قطعة")
-        
-    if gender:
-        parts.append(gender)
-        
-    if colors:
-        parts.append(colors[0])
-        
-    if materials:
-        parts.append(materials[0])
-        
-    if details:
-        parts.extend(details[:3])
-        
-    result = " ".join(parts)
-    return re.sub(r'\s+', ' ', result).strip()
+        if quantity:   parts.append(quantity)
+        if main_type:  parts.append(main_type)
+        if gender:     parts.append(gender)
+        if colors:     parts.append(colors[0])
+        if materials:  parts.append(materials[0])
+        parts.extend(details[:2])
+    
+    if not main_type:
+        if colors:     parts.append(colors[0])
+        if materials:  parts.append(materials[0])
+        if details:    parts.append(details[0])
+        if not parts:
+            return "منتج مميز من شي إن"
+    
+    return re.sub(r'\s+', ' ', " ".join(parts)).strip()
 
 
 def is_shein_url(url):
