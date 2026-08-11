@@ -225,7 +225,7 @@ def build_description(title):
     is_acc = main_type in ACCESSORY_SET
     is_beauty = main_type in BEAUTY_SET
     
-    # فلترة منطقية حسب الفئة
+    # فلترة منطقية
     if is_bottom:
         sleeves = []
         necks = []
@@ -236,36 +236,36 @@ def build_description(title):
     if is_acc or is_beauty:
         fits = []
     
-    # احذف "سادة" (مفروضة أو redundant)
-    real_colors = [c for c in colors if c != "سادة"]
-    colors = real_colors if real_colors else []
+    # احذف "سادة" تماماً
+    colors = [c for c in colors if c != "سادة"]
     
-    # احذف "كاجوال" لو هي التفصيل الوحيد (مفروضة)
-    real_details = [d for d in details if d != "كاجوال"]
-    details = real_details if real_details else []
+    # احذف "كاجوال" و"عادي" تماماً (مفروضات)
+    details = [d for d in details if d not in {"كاجوال", "عادي"}]
+    fits = [f for f in fits if f != "عادي"]
     
     color = colors[0] if colors else ""
     material = materials[0] if materials else ""
-    fit_str = " ".join(fits) if fits else ""
+    fit = fits[0] if fits else ""
     neck = necks[0] if necks else ""
     sleeve = sleeves[0] if sleeves else ""
     detail = details[0] if details else ""
     
-    # منع التكرار: لو الخامة = النوع (مثل جينز)
+    # منع التكرار: الخامة = النوع
     if material == main_type:
         material = ""
     
-    # ─── بناء الجملة العربية الطبيعية ───
-    # الترتيب: النوع → الفيت → اللون → الخامة
+    # ─── بناء الجملة بالقالب الثابت ───
+    # [النوع] [الفيت] [اللون] [الخامة] | [التفاصيل]
+    
     parts = []
     if main_type:  parts.append(main_type)
-    if fit_str:    parts.append(fit_str)
+    if fit:        parts.append(fit)
     if color:      parts.append(color)
     if material:   parts.append(material)
     
     headline = " ".join(parts)
     
-    # التفاصيل: رقبة → أكمام → تفاصيل
+    # التفاصيل
     extras = []
     if neck:    extras.append(neck)
     if sleeve:  extras.append(sleeve)
@@ -277,19 +277,8 @@ def build_description(title):
     emoji = EMOJI_MAP.get(main_type, "✨")
     
     if extras:
-        if len(extras) == 1:
-            extra_str = extras[0]
-        else:
-            extra_str = " و".join(extras)
-        
-        # دمج في نفس الجملة لو الوصف قصير
-        if len(extras) <= 2 and len(headline.split()) <= 5:
-            if extra_str.startswith("بلا"):
-                desc = f"{headline} {extra_str} {emoji}"
-            else:
-                desc = f"{headline} ب{extra_str} {emoji}"
-        else:
-            desc = f"{headline} {emoji} | {extra_str}"
+        extra_str = " و".join(extras)
+        desc = f"{headline} {emoji} | {extra_str}"
     else:
         desc = f"{headline} {emoji}"
     
