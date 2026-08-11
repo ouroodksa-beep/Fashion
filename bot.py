@@ -27,6 +27,8 @@ WORDS = {
     "leggings": "ليقنز", "jumpsuit": "جمبسوت", "romper": "رومبر",
     "bodysuit": "بدي", "overalls": "أوفرول",
     "socks": "جوارب", "tights": "جورب شفاف", "stockings": "شرابات",
+    "pajamas": "بيجاما", "pyjamas": "بيجاما", "nightwear": "لبس نوم",
+    "lingerie": "لانجري", "bra": "صدرية", "underwear": "ملابس داخلية",
     
     # أحذية
     "shoes": "حذاء", "sneakers": "سنيكرز", "trainers": "حذاء رياضي",
@@ -115,7 +117,8 @@ SKIP_WORDS = {
 TYPE_SET = {"فستان", "فستان سهرة", "قميص", "بلوزة", "توب", "تيشيرت", "هودي",
             "سويت شيرت", "جاكيت", "معطف", "بليزر", "كارديجان", "سترة", "بلوفر",
             "بنطلون", "جينز", "شينو", "شورت", "تنورة", "ليقنز", "جمبسوت", "رومبر",
-            "بدي", "أوفرول", "حذاء", "سنيكرز", "صندل", "كعب عالي", "كعب", "باليرينا",
+            "بدي", "أوفرول", "بيجاما", "لبس نوم", "لانجري", "صدرية", "ملابس داخلية",
+            "حذاء", "سنيكرز", "صندل", "كعب عالي", "كعب", "باليرينا",
             "لوفر", "أوكسفورد", "بوت", "بوت كاحل", "شبشب", "حذاء رياضي",
             "شنطة", "شنطة يد", "شنطة ظهر", "توت باج", "كلتش", "كروس بودي",
             "محفظة", "حزام", "ربطة عنق", "وشاح", "قفازات", "قبعة", "كاب",
@@ -152,6 +155,7 @@ EMOJI_MAP = {
     "بليزر": "🤵", "كارديجان": "🧶", "سترة": "🧶", "بلوفر": "🧶",
     "بنطلون": "👖", "جينز": "👖", "شينو": "👖", "شورت": "🩳", "تنورة": "👗",
     "ليقنز": "🖤", "جمبسوت": "👗", "رومبر": "👗", "بدي": "👙", "أوفرول": "👖",
+    "بيجاما": "🌙", "لبس نوم": "🌙", "لانجري": "💋", "صدرية": "👙", "ملابس داخلية": "👙",
     "حذاء": "👞", "سنيكرز": "👟", "صندل": "🩴", "كعب عالي": "👠", "كعب": "👠",
     "باليرينا": "🥿", "لوفر": "👞", "أوكسفورد": "👞", "بوت": "👢", "بوت كاحل": "👢",
     "شبشب": "🩴", "حذاء رياضي": "👟",
@@ -166,6 +170,81 @@ EMOJI_MAP = {
     "مرطب": "🧴", "واقي شمس": "☀️", "شامبو": "🧴", "بلسم": "🧴", "ماسك": "🧖‍♀️",
     "صابون": "🧼", "فرشاة": "🖌️",
 }
+
+
+def extract_quantity(title):
+    """استخراج عدد القطع: 2pc / 3 piece / set of 4"""
+    t = title.lower()
+    patterns = [
+        r'(\d+)\s*(?:pc|pcs|piece|pieces)\b',
+        r'(\d+)\s*-\s*(?:pc|pcs|piece|pieces)\b',
+        r'\b(?:set|pack|bundle)\s+of\s+(\d+)',
+        r'\b(\d+)\s*(?:set|pack|bundle)\b',
+    ]
+    for pat in patterns:
+        m = re.search(pat, t)
+        if m:
+            n = int(m.group(1))
+            if n == 1:
+                return None
+            elif n == 2:
+                return "قطعتين"
+            else:
+                return f"{n} قطع"
+    if re.search(r'\b(?:set|pack|bundle)\b', t):
+        return "طقم"
+    return None
+
+
+def detect_gender(title, main_type=""):
+    """تحديد الجنس بدقة"""
+    t = title.lower()
+    
+    female = ["women", "woman", "ladies", "lady", "female", "womens", "women's",
+              "girl's", "girls'", "dress", "skirt", "blouse", "heels", "handbag",
+              "blush", "lipstick", "gown", "frock", "tights", "leggings", "bodysuit",
+              "romper", "jumpsuit", "cardigan", "clutch", "tote", "crossbody",
+              "earrings", "necklace", "bracelet", "maxi", "midi", "mini", "bra",
+              "pajamas", "pyjamas", "nightwear", "lingerie"]
+    male = ["men", "man", "male", "mens", "men's", "boy's", "boys'",
+            "suit", "tuxedo", "chinos", "oxfords", "loafers", "tie", "belt", "blazer"]
+    kids = ["kids", "children", "child", "baby", "toddler", "infant", "newborn"]
+    
+    def has_word(text, lst):
+        for w in lst:
+            if re.search(r'\b' + re.escape(w) + r'\b', text):
+                return True
+        return False
+    
+    has_f = has_word(t, female)
+    has_m = has_word(t, male)
+    has_k = has_word(t, kids)
+    
+    if has_k:
+        if has_f and not has_m:
+            return "👧 بنات"
+        if has_m and not has_f:
+            return "👦 أولاد"
+        return "🧒 أطفال"
+    
+    # أنواع حصرية
+    female_only = {"فستان", "فستان سهرة", "بلوزة", "تنورة", "كعب عالي", "كعب",
+                   "باليرينا", "شنطة يد", "كلتش", "توت باج", "كروس بودي", "بلاشر",
+                   "أحمر شفاه", "ملمع شفاه", "ماسكارا", "آيلاينر", "ظل عيون", "هايلايتر",
+                   "كونسيلر", "برايمر", "مثبت مكياج", "رومبر", "بدي", "جمبسوت",
+                   "بيجاما", "لبس نوم", "لانجري", "صدرية", "ملابس داخلية"}
+    male_only = {"ربطة عنق", "بليزر", "أوكسفورد", "لوفر"}
+    
+    if main_type in female_only:
+        return "👩 نسائي"
+    if main_type in male_only:
+        return "👨 رجالي"
+    
+    if has_f and not has_m:
+        return "👩 نسائي"
+    if has_m and not has_f:
+        return "👨 رجالي"
+    return ""
 
 
 def extract_keywords(title):
@@ -236,10 +315,8 @@ def build_description(title):
     if is_acc or is_beauty:
         fits = []
     
-    # احذف "سادة" تماماً
+    # احذف "سادة" و"كاجوال" و"عادي"
     colors = [c for c in colors if c != "سادة"]
-    
-    # احذف "كاجوال" و"عادي" تماماً (مفروضات)
     details = [d for d in details if d not in {"كاجوال", "عادي"}]
     fits = [f for f in fits if f != "عادي"]
     
@@ -250,22 +327,26 @@ def build_description(title):
     sleeve = sleeves[0] if sleeves else ""
     detail = details[0] if details else ""
     
-    # منع التكرار: الخامة = النوع
+    # منع تكرار الخامة = النوع
     if material == main_type:
         material = ""
     
-    # ─── بناء الجملة بالقالب الثابت ───
-    # [النوع] [الفيت] [اللون] [الخامة] | [التفاصيل]
+    quantity = extract_quantity(title)
+    gender = detect_gender(title, main_type)
+    
+    # ─── بناء الوصف التفصيلي ───
+    # [عدد القطع] [النوع] [الفيت] [اللون] [الخامة] [الجنس] | [تفاصيل]
     
     parts = []
+    if quantity:   parts.append(quantity)
     if main_type:  parts.append(main_type)
     if fit:        parts.append(fit)
     if color:      parts.append(color)
     if material:   parts.append(material)
+    if gender:     parts.append(gender)
     
     headline = " ".join(parts)
     
-    # التفاصيل
     extras = []
     if neck:    extras.append(neck)
     if sleeve:  extras.append(sleeve)
