@@ -196,7 +196,7 @@ def build_description(title):
     colors = [k for k in kw if k in COLOR_SET]
     materials = [k for k in kw if k in MATERIAL_SET]
     
-    main_type = max(types, key=len) if types else "القطعة"
+    main_type = max(types, key=len) if types else ""
     quantity = extract_quantity(title)
     gender = detect_gender(title)
     
@@ -204,7 +204,6 @@ def build_description(title):
     material = materials[0] if materials else ""
     emoji = EMOJI_MAP.get(main_type, "✨")
     
-    # صفة المادة واللون لتكوين الجملة الصح
     desc_elements = []
     if quantity: desc_elements.append(f"({quantity})")
     if color: desc_elements.append(f"لون {color}")
@@ -212,13 +211,15 @@ def build_description(title):
     
     detail_str = " - ".join(desc_elements)
     
-    # ─── نصوص قصيرة ومستهدفة ───
+    # ─── صياغة النصوص بدقة متناهية ───
     if gender == "أطفال":
-        phrase = f"يا عيني على الكيوت! شوفوا {main_type} الأطفال هذا يجنن باللبس 👶{emoji}"
+        item_word = f"الـ {main_type}" if main_type else "القطعة"
+        phrase = f"يا عيني على الكيوت! شوفوا {item_word} للأطفال تجنن باللبس 👶{emoji}"
     elif gender == "رجالي":
-        phrase = f"للشباب.. شوفوا {main_type} هذا ترتيب وشياكة لا تفوتكم 🔥{emoji}"
+        item_word = f"الـ {main_type}" if main_type else "هذا المنتج"
+        phrase = f"للشباب.. شوفوا {item_word} ترتيب وشياكة مو عادية 🔥{emoji}"
     else:  # نسائي
-        if main_type != "القطعة":
+        if main_type:
             intros = [
                 f"يا بنات شوفوا هذا الـ {main_type} يجنن وأناقة مو عادية! 😍{emoji}",
                 f"بنات الحقوا على هذا الـ {main_type} خيالي باللبس وطلته تاخد العقل 💕{emoji}",
@@ -227,15 +228,22 @@ def build_description(title):
         else:
             intros = [
                 f"يا بنات شوفوا هذه القطعة تجنن وأناقتها مو عادية! 😍✨",
-                f"بنات الحقوا على هذه القطعة خيالية باللبس وطلتها تاخد العقل 💕✨"
+                f"بنات شوفوا هذه القطعة الخيالية باللبس، طلتها تاخد العقل 💕✨"
             ]
         phrase = random.choice(intros)
     
-    # البوست النهائي سطرين نظاف وبس
+    # الخاتمة شيك وبدون "قبل ينفد"
+    closings = [
+        "تسوقوا الآن من الرابط التالي 🛒✨",
+        "لطلب المنتج واستعراض التفاصيل 👇🛍️",
+        "رابط الطلب المباشر ✨🛒"
+    ]
+    selected_closing = random.choice(closings)
+    
     if detail_str:
-        final_text = f"{phrase}\n📌 التفاصيل: {detail_str} ✨\n\nالحقوا عليه قبل ينفد! 🛒"
+        final_text = f"{phrase}\n📌 التفاصيل: {detail_str}\n\n{selected_closing}"
     else:
-        final_text = f"{phrase}\n\nالحقوا عليه قبل ينفد! 🛒✨"
+        final_text = f"{phrase}\n\n{selected_closing}"
         
     return final_text
 
@@ -330,7 +338,7 @@ def handler(msg):
             continue
 
         product_caption = build_description(product["full_title"])
-        post = f"{product_caption}\n\n🔗 رابط المنتج:\n{original_url}"
+        post = f"{product_caption}\n🔗 {original_url}"
 
         try:
             if product["image"]:
