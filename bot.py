@@ -4,36 +4,33 @@ import time
 import os
 import requests
 import json
+from bs4 import BeautifulSoup
 from flask import Flask, request
-from playwright.sync_api import sync_playwright
 
 # ─── التوكن ومفاتيح التشغيل ───
 TOKEN = os.environ.get("BOT_TOKEN", "8888709197:AAEVCTpVticEzi-NBaWRdIQDmKJSxdRzA54")
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "AIzaSyAD68JzBWieLXb9kE-7qOg-8p10_EkY518")
+SCRAPERAPI_KEY = os.environ.get("SCRAPERAPI_KEY", "fb7742b2e62f3699d5059eea890268dd")
+
+# كود العمولة الخاص بكِ ليتم إلحاقه تلقائياً بكل الروابط
+MY_AFFILIATE_PARAM = "ismg_ol=Dg3DA5Crnv1_01_KOC-C"
 
 bot = telebot.TeleBot(TOKEN)
 
 
 def generate_caption_with_ai(product_title):
-    """
-    إرسال عنوان المنتج لـ Gemini ليحلله بدقة ويكتب وصفًا أنثويًا جذابًا
-    """
     if not GEMINI_API_KEY:
         return "قطعة تجننن وتفتح النفس! شوفوا التفاصيل بالرابط ✨💕"
 
     prompt = f"""
-أنتِ خبيرة تسويق وإعلانات لقناة تليجرام أنثوية مهتمة بالموضة والمنتجات (مثل قناة مون فاشن).
-قم بقراءة عنوان المنتج التالي المأخوذ من موقع التسوق، وتعرف على نوعه بدقة (هل هو ملابس، مج/كوب، مكياج، ديكور، مفرش، إكسسوار... إلخ) ولونه وخامته إن وجدت:
+أنتِ خبيرة تسويق وإعلانات لقناة تليجرام أنثوية مهتمة بالموضة والمنتجات.
+قم بقراءة عنوان المنتج التالي المأخوذ من موقع التسوق، وتعرف على نوعه بدقة:
 
 عنوان المنتج: "{product_title}"
 
 المطلوب:
-1. اكتب منشورًا قصيرًا وجذابًا جدًا بالعامية السعودية/الخليجية العصرية بنفس أسلوب قنوات التليجرام (استخدم كلمات حماسية مثل: مرررره، يجننن، خيالي، تخدمكم، رايقة، مع إموجيات مناسبة).
-2. يجب أن يكون الكلام مطبقًا 100% على طبيعة المنتج (مثلاً: إذا كان مج أو كوب لا تتحدث عن اللبس بل عن القهوة والروقان، إذا كان مكياج تحدث عن النضارة، إذا كان فستان تحدث عن الكشخة والقصة).
-3. اكتب النص التسويقي المباشر بدون مقدمات أو شرح أو أسعار.
-4. اذكر التفاصيل (اللون/النوع/الخامة) بشكل دقيق بناءً على العنوان فقط بدون تأليف ألوان غير موجودة.
-
-اكتب النص النهائي مباشرة بدون أي مقدمات أو شرح.
+1. اكتب منشورًا قصيرًا وجذابًا جدًا بالعامية السعودية/الخليجية العصرية بنفس أسلوب قنوات التليجرام.
+2. اكتب النص التسويقي المباشر بدون مقدمات أو شرح أو أسعار.
 """
 
     url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={GEMINI_API_KEY}"
@@ -50,56 +47,37 @@ def generate_caption_with_ai(product_title):
     return "قطعة أنيقة وعصرية، شوفوا كامل التفاصيل في الرابط ✨"
 
 
-def get_shein_product_with_browser(raw_url):
+def attach_affiliate_code(url):
     """
-    فتح الرابط بمتصفح متخفي لتجاوز حظر البوتات واستخراج البيانات
+    دمج كود التتبع الخاص بكِ بالرابط النهائي لضمان احتساب العمولة
     """
+    if "ismg_ol=" in url:
+        return url
+    
+    separator = "&" if "?" in url else "?"
+    return f"{url}{separator}{MY_AFFILIATE_PARAM}"
+
+
+def get_shein_product(raw_url):
+    """
+    قراءة المنتج عبر ScraperAPI من الرابط المباشر
+    """
+    api_url = f"http://api.scraperapi.com?api_key={SCRAPERAPI_KEY}&url={requests.utils.quote(raw_url)}"
+
     try:
-        with sync_playwright() as p:
-            browser = p.chromium.launch(
-                headless=True,
-                args=[
-                    '--no-sandbox',
-                    '--disable-setuid-sandbox',
-                    '--disable-blink-features=AutomationControlled'
-                ]
-            )
-            
-            # إعدادات محاكاة متصفح آيفون حقيقي بدون بصمة بوت
-            context = browser.new_context(
-                user_agent="Mozilla/5.0 (iPhone; CPU iPhone OS 17_4 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.4 Mobile/15E148 Safari/604.1",
-                viewport={'width': 393, 'height': 852},
-                locale="ar-SA",
-                device_scale_factor=3,
-                is_mobile=True,
-                has_touch=True
-            )
-            
-            page = context.new_page()
-            
-            # اخفاء متغيرات التشفير والتحكم الآلي
-            page.add_init_script("""
-                Object.defineProperty(navigator, 'webdriver', {get: () => undefined});
-            """)
-            
-            # فتح الرابط مع إعطاء وقت أطول للتوجيهات (OneLink)
-            page.goto(raw_url, wait_until="networkidle", timeout=45000)
-            page.wait_for_timeout(4000)
+        r = requests.get(api_url, timeout=30)
+        if r.status_code == 200:
+            soup = BeautifulSoup(r.text, "html.parser")
+            title = None
+            image = None
 
-            # استخراج عنوان ورابط الصورة
-            title = page.evaluate("""() => {
-                const metaOg = document.querySelector('meta[property="og:title"]') || document.querySelector('meta[name="twitter:title"]');
-                if (metaOg && metaOg.content) return metaOg.content;
-                return document.title;
-            }""")
+            og_title = soup.select_one('meta[property="og:title"]') or soup.select_one('meta[name="twitter:title"]')
+            if og_title and og_title.get("content"):
+                title = og_title["content"].strip()
 
-            image = page.evaluate("""() => {
-                const metaImg = document.querySelector('meta[property="og:image"]') || document.querySelector('meta[name="twitter:image"]');
-                if (metaImg && metaImg.content) return metaImg.content;
-                return null;
-            }""")
-
-            browser.close()
+            og_image = soup.select_one('meta[property="og:image"]') or soup.select_one('meta[name="twitter:image"]')
+            if og_image and og_image.get("content"):
+                image = og_image["content"].strip()
 
             if title:
                 title = re.sub(r"\s*\|\s*SHEIN.*$", "", title, flags=re.IGNORECASE).strip()
@@ -107,13 +85,10 @@ def get_shein_product_with_browser(raw_url):
             if image and image.startswith("//"):
                 image = "https:" + image
 
-            if title and len(title) > 3 and "SHEIN" not in title and "OneLink" not in title:
+            if title:
                 return {"full_title": title, "image": image}
-            elif title and len(title) > 5:
-                return {"full_title": title, "image": image}
-
     except Exception as e:
-        print(f"Playwright Stealth Scraping Error: {e}")
+        print(f"Scraper Error: {e}")
 
     return None
 
@@ -124,20 +99,25 @@ def handler(msg):
     urls = re.findall(r"https?://\S+", text)
 
     if not urls:
-        bot.reply_to(msg, "❌ يرجى إرسال رابط المنتج")
+        bot.reply_to(msg, "❌ يرجى إرسال رابط المنتج (سواء رابط عادي أو رابط أفيلييت)")
         return
 
     for original_url in urls:
-        wait = bot.reply_to(msg, "⏳ جاري فتح الرابط بمتصفح متخفي وقراءة تفاصيل القطعة...")
+        wait = bot.reply_to(msg, "⏳ جاري تحليل القطعة وتجهيز رابط العمولة الخاص بكِ...")
 
-        product = get_shein_product_with_browser(original_url)
+        # 1. محاولة قراءة بيانات المنتج
+        product = get_shein_product(original_url)
 
         if not product or not product.get("full_title"):
-            bot.edit_message_text("❌ تعذر قراءة عنوان المنتج، يرجى التأكد من صحة الرابط أو المحاولة لاحقاً.", msg.chat.id, wait.message_id)
+            bot.edit_message_text("❌ لم نتمكن من قراءة العنوان تلقائياً من رابط onelink. يرجى إرسال رابط المنتج المباشر من المتصفح وسيقوم البوت بتحويله لرابط أفيلييت خاص بكِ تلقائياً.", msg.chat.id, wait.message_id)
             continue
 
+        # 2. إنشاء رابط العمولة المضمون
+        affiliate_link = attach_affiliate_code(original_url)
+        
+        # 3. صياغة النص بالذكاء الاصطناعي
         ai_caption = generate_caption_with_ai(product["full_title"])
-        post = f"{ai_caption}\n\n🔗 {original_url}"
+        post = f"{ai_caption}\n\n🔗 {affiliate_link}"
 
         try:
             if product.get("image"):
