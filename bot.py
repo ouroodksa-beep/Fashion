@@ -51,61 +51,52 @@ def generate_caption_with_ai(product_title):
     return "قطعة أنيقة وعصرية، شوفوا كامل التفاصيل في الرابط ✨"
 
 
-def unshorten_url(url):
-    """
-    تتبع الرابط المختصر لجلب الرابط الحقيقي للمنتج
-    """
-    headers = {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
-    }
-    try:
-        res = requests.head(url, headers=headers, allow_redirects=True, timeout=10)
-        return res.url
-    except Exception:
-        try:
-            res = requests.get(url, headers=headers, allow_redirects=True, timeout=10)
-            return res.url
-        except Exception:
-            return url
-
-
 def get_shein_product(raw_url):
     """
-    فك الرابط ثم الكشط باستخدام ScraperAPI
+    جلب صفحة SHEIN بالكامل عبر ScraperAPI مع تفعيل الـ Rendering لتتبع التحويلات
     """
-    # 1. تتبع فك التوجيه أولاً للحصول على رابط web كامل
-    final_url = unshorten_url(raw_url)
-    print(f"Final URL resolved: {final_url}")
-
-    # 2. إرسال الرابط النهائي إلى ScraperAPI بدون render=true لسحب البيانات مباشرة
-    api_url = f"http://api.scraperapi.com?api_key={SCRAPERAPI_KEY}&url={requests.utils.quote(final_url)}&keep_headers=true"
-
-    headers = {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-        "Accept-Language": "ar-SA,ar;q=0.9,en-US;q=0.8,en;q=0.7"
-    }
+    api_url = f"http://api.scraperapi.com?api_key={SCRAPERAPI_KEY}&url={requests.utils.quote(raw_url)}&render=true"
 
     try:
-        r = requests.get(api_url, headers=headers, timeout=25)
+        r = requests.get(api_url, timeout=40)
         if r.status_code == 200:
             soup = BeautifulSoup(r.text, "html.parser")
 
             title = None
-            og_title = soup.select_one('meta[property="og:title"]')
-            if og_title and og_title.get("content"):
-                title = og_title["content"].strip()
-            
+            image = None
+
+            # 1. البحث في بيانات Schema / JSON-LD المدمجة بالصفحة (أدق مصدر)
+            for script in soup.find_all('script', type='application/ld+json'):
+                try:
+                    data = json.loads(script.string)
+                    if isinstance(data, dict) and data.get('@type') == 'Product':
+                        title = data.get('name')
+                        image = data.get('image')
+                        if isinstance(image, list) and image:
+                            image = image[0]
+                        break
+                except Exception:
+                    continue
+
+            # 2. البحث في Meta Tags إذا لم نجد البيانات في JSON
+            if not title:
+                og_title = soup.select_one('meta[property="og:title"]')
+                if og_title and og_title.get("content"):
+                    title = og_title["content"].strip()
+
+            if not image:
+                og_image = soup.select_one('meta[property="og:image"]')
+                if og_image and og_image.get("content"):
+                    image = og_image["content"].strip()
+
+            # 3. محاولة أخيرة من وسم <title>
             if not title:
                 title_tag = soup.select_one("title")
                 if title_tag:
                     title = title_tag.get_text(strip=True)
                     title = re.sub(r"\s*\|\s*SHEIN.*$", "", title, flags=re.IGNORECASE)
 
-            image = None
-            og_image = soup.select_one('meta[property="og:image"]')
-            if og_image and og_image.get("content"):
-                image = og_image["content"].strip()
-
+            # تنظيف رابط الصورة
             if image:
                 if image.startswith("//"):
                     image = "https:" + image
@@ -133,12 +124,12 @@ def handler(msg):
         return
 
     for original_url in urls:
-        wait = bot.reply_to(msg, "⏳ جاري فك وتتبع الرابط وتحليل المنتج...")
+        wait = bot.reply_to(msg, "⏳ جاري فتح الرابط وتتبع المنتج بالذكاء الاصطناعي...")
 
         product = get_shein_product(original_url)
 
         if not product or not product.get("full_title"):
-            bot.edit_message_text("❌ تعذر قراءة عنوان المنتج، يرجى التأكد من صحة الرابط.", msg.chat.id, wait.message_id)
+            bot.edit_message_text("❌ تعذر قراءة عنوان المنتج، يرجى التأكد من صحة الرابط أو المحاولة لاحقاً.", msg.chat.id, wait.message_id)
             continue
 
         ai_caption = generate_caption_with_ai(product["full_title"])
