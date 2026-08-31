@@ -4,6 +4,7 @@ import time
 import os
 import requests
 import json
+import cloudscraper
 from bs4 import BeautifulSoup
 from flask import Flask, request
 
@@ -56,39 +57,33 @@ def generate_caption_with_ai(product_title):
     except Exception as e:
         print(f"Exception during Gemini API call: {e}")
 
-    return "قطعة مميزة وتجنن، شوفوا تفاصيلها بالرابط 👇✨"
+    return f"قطعة أنيقة وعصرية، شوفوا كامل التفاصيل في الرابط ✨"
 
 
 def get_shein_product(url):
-    user_agents = [
-        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36",
-    ]
-
-    for attempt, ua in enumerate(user_agents):
-        try:
-            if attempt > 0:
-                time.sleep(1)
-
-            session = requests.Session()
-            headers = {
-                "User-Agent": ua,
-                "Accept-Language": "ar,en-US;q=0.9,en;q=0.8",
-                "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+    """
+    استخدام cloudscraper لتجاوز حظر شي إن وجلب العنوان والصورة
+    """
+    try:
+        scraper = cloudscraper.create_scraper(
+            browser={
+                'browser': 'chrome',
+                'platform': 'windows',
+                'desktop': True
             }
+        )
+        
+        proxies = {"http": PROXY_URL, "https": PROXY_URL} if PROXY_URL else None
+        r = scraper.get(url, timeout=15, proxies=proxies)
 
-            proxies = {"http": PROXY_URL, "https": PROXY_URL} if PROXY_URL else {}
-            r = session.get(url, headers=headers, timeout=15, proxies=proxies, allow_redirects=True)
-
-            if r.status_code != 200 or len(r.text) < 2000:
-                continue
-
+        if r.status_code == 200 and len(r.text) > 1000:
             soup = BeautifulSoup(r.text, "html.parser")
 
             title = None
             og_title = soup.select_one('meta[property="og:title"]')
             if og_title:
                 title = og_title.get("content", "").strip()
+            
             if not title:
                 title_tag = soup.select_one("title")
                 if title_tag:
@@ -109,9 +104,8 @@ def get_shein_product(url):
             if title:
                 return {"full_title": title, "image": image}
 
-        except Exception as e:
-            print(f"Attempt {attempt + 1} failed: {e}")
-            continue
+    except Exception as e:
+        print(f"Cloudscraper error: {e}")
 
     return None
 
@@ -130,8 +124,8 @@ def handler(msg):
 
         product = get_shein_product(original_url)
 
-        if not product:
-            bot.edit_message_text("❌ تعذر قراءة بيانات المنتج من الرابط", msg.chat.id, wait.message_id)
+        if not product or not product.get("full_title"):
+            bot.edit_message_text("❌ تعذر قراءة عنوان المنتج من شي إن (يرجى التأكد من تشغيل البروكسي أو ScraperAPI)", msg.chat.id, wait.message_id)
             continue
 
         # قراءة العنوان وتحليله عبر Gemini
