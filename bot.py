@@ -10,7 +10,6 @@ from flask import Flask, request
 # ─── التوكن ومفاتيح التشغيل ───
 TOKEN = os.environ.get("BOT_TOKEN", "8888709197:AAEVCTpVticEzi-NBaWRdIQDmKJSxdRzA54")
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "AIzaSyAD68JzBWieLXb9kE-7qOg-8p10_EkY518")
-SCRAPERAPI_KEY = os.environ.get("SCRAPERAPI_KEY", "fb7742b2e62f3699d5059eea890268dd")
 
 bot = telebot.TeleBot(TOKEN)
 
@@ -51,28 +50,29 @@ def generate_caption_with_ai(product_title):
     return "قطعة أنيقة وعصرية، شوفوا كامل التفاصيل في الرابط ✨"
 
 
-def parse_shein_onelink(url):
+def get_shein_product_details(raw_url):
     """
-    استخراج المعلمات الحقيقية واسم القطعة والصورة لتجاوز حظر onelink
+    استخراج تفاصيل المنتج من شي إن بتتبع التحويل ومخاطبة الـ API المباشر
     """
     session = requests.Session()
     session.headers.update({
         "User-Agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 16_6 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.6 Mobile/15E148 Safari/604.1",
-        "Accept-Language": "ar-SA,ar;q=0.9"
+        "Accept-Language": "ar-SA,ar;q=0.9,en-US;q=0.8,en;q=0.7",
+        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8"
     })
 
     try:
-        # Step 1: تتبع التحويل
-        res = session.get(url, allow_redirects=True, timeout=15)
-        html = res.text
+        # 1. تتبع التحويل للحصول على الرابط الحقيقي
+        res = session.get(raw_url, allow_redirects=True, timeout=12)
         final_url = res.url
+        html_content = res.text
 
-        # البحث عن الوسوم العادية أولاً
-        soup = BeautifulSoup(html, "html.parser")
-        
         title = None
         image = None
 
+        # 2. محاولة قراءة الوسوم من الـ HTML المرجوع أولاً
+        soup = BeautifulSoup(html_content, "html.parser")
+        
         og_title = soup.select_one('meta[property="og:title"]') or soup.select_one('meta[name="twitter:title"]')
         if og_title and og_title.get("content"):
             title = og_title["content"].strip()
@@ -81,27 +81,27 @@ def parse_shein_onelink(url):
         if og_image and og_image.get("content"):
             image = og_image["content"].strip()
 
-        # Step 2: إذا كان العنوان يحتوي على OneLink أو فارغ، نستخرج كود المنتج من الرابط النهائي
-        if not title or "OneLink" in title or "SHEIN" == title.strip():
-            # استخراج اسم المنتج أو رقم القطعة من رابط التوجيه النهائي
-            goods_id_match = re.search(r'goods_id[=\/](\d+)', final_url) or re.search(r'-p-(\d+)', final_url)
+        # 3. إذا فشل القراءة المباشرة، نبحث عن رقم القطعة (goods_id) لاستعلام API شي إن المباشر
+        if not title or "SHEIN" in title or "OneLink" in title:
+            goods_id_match = re.search(r'goods_id[=\/](\d+)', final_url) or re.search(r'-p-(\d+)', final_url) or re.search(r'p-(\d+)', html_content)
             
             if goods_id_match:
                 goods_id = goods_id_match.group(1)
-                # الاستعلام من API الجوال المباشر الخاص بشي إن بدون حظر Scraper
-                api_req = session.get(f"https://ar.shein.com/goods-detail-api-{goods_id}.html", timeout=10)
-                if api_req.status_code == 200:
+                api_url = f"https://ar.shein.com/goods-detail-api-{goods_id}.html"
+                api_res = session.get(api_url, timeout=10)
+                
+                if api_res.status_code == 200:
                     try:
-                        data = api_req.json()
+                        data = api_res.json()
                         if 'info' in data and 'goods_name' in data['info']:
                             title = data['info']['goods_name']
                             image = data['info'].get('goods_img', image)
                     except Exception:
                         pass
 
-        # Step 3: التنظيف والتحقق
+        # 4. تنظيف العنوان والروابط
         if title:
-            title = re.sub(r"\s*\|\s*SHEIN.*$", "", title, flags=re.IGNORECASE)
+            title = re.sub(r"\s*\|\s*SHEIN.*$", "", title, flags=re.IGNORECASE).strip()
 
         if image:
             if image.startswith("//"):
@@ -113,25 +113,7 @@ def parse_shein_onelink(url):
             return {"full_title": title, "image": image}
 
     except Exception as e:
-        print(f"Direct Parse Error: {e}")
-
-    # Step 4: المحاولة الاحتياطية المتقدمة عبر ScraperAPI مع رؤوس هاتف ذكي
-    if SCRAPERAPI_KEY:
-        try:
-            s_url = f"http://api.scraperapi.com?api_key={SCRAPERAPI_KEY}&url={requests.utils.quote(url)}&device_type=mobile"
-            r = requests.get(s_url, timeout=30)
-            if r.status_code == 200:
-                soup = BeautifulSoup(r.text, "html.parser")
-                og_title = soup.select_one('meta[property="og:title"]')
-                og_image = soup.select_one('meta[property="og:image"]')
-                
-                title = og_title["content"].strip() if og_title else None
-                image = og_image["content"].strip() if og_image else None
-                
-                if title:
-                    return {"full_title": title, "image": image}
-        except Exception as e:
-            print(f"ScraperAPI Fallback Error: {e}")
+        print(f"Error fetching product: {e}")
 
     return None
 
@@ -146,12 +128,12 @@ def handler(msg):
         return
 
     for original_url in urls:
-        wait = bot.reply_to(msg, "⏳ جاري استخراج تفاصيل المنتج وتحليله بالذكاء الاصطناعي...")
+        wait = bot.reply_to(msg, "⏳ جاري قراءة تفاصيل المنتج بالذكاء الاصطناعي...")
 
-        product = parse_shein_onelink(original_url)
+        product = get_shein_product_details(original_url)
 
         if not product or not product.get("full_title"):
-            bot.edit_message_text("❌ تعذر قراءة عنوان المنتج من رابط شي إن، يرجى التأكد من صحة الرابط.", msg.chat.id, wait.message_id)
+            bot.edit_message_text("❌ تعذر قراءة عنوان المنتج، يرجى التأكد من صحة الرابط أو المحاولة لاحقاً.", msg.chat.id, wait.message_id)
             continue
 
         ai_caption = generate_caption_with_ai(product["full_title"])
