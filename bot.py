@@ -31,58 +31,52 @@ def generate_caption_with_ai(product_title):
 
 المطلوب:
 1. اكتب منشورًا قصيرًا وجذابًا جدًا بالعامية السعودية/الخليجية العصرية بنفس أسلوب قنوات التليجرام (استخدم كلمات حماسية مثل: مرررره، يجننن، خيالي، تخدمكم، رايقة، مع إموجيات مناسبة).
-2. يجب أن يكون الكلام مطبقًا 100% على طبيعة المنتج (مثلاً: إذا كان مج أو كوب لا تتحدث عن اللبس أو الأناقة بل عن الروقان والقهوة والدوام، إذا كان مكياج تحدث عن النضارة والدمج، إذا كان فستان تحدث عن الكشخة والقصة والنعومة).
-3. لا تذكر سعر المنتج ولا تكتب مقدمات أو خاتمة رسمية، اكتب النص التسويقي ورابط الطلب المباشر بنفس روح القنوات.
-4. اذكر التفاصيل (اللون/النوع/الخامة) بشكل دقيق وصحيح بناءً على العنوان فقط بدون تأليف ألوان غير موجودة.
+2. يجب أن يكون الكلام مطبقًا 100% على طبيعة المنتج (مثلاً: إذا كان مج أو كوب لا تتحدث عن اللبس بل عن القهوة والروقان، إذا كان مكياج تحدث عن النضارة، إذا كان فستان تحدث عن الكشخة والقصة).
+3. اكتب النص التسويقي المباشر بدون مقدمات أو شرح أو أسعار.
+4. اذكر التفاصيل (اللون/النوع/الخامة) بشكل دقيق بناءً على العنوان فقط بدون تأليف ألوان غير موجودة.
 
 اكتب النص النهائي مباشرة بدون أي مقدمات أو شرح.
 """
 
     url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={GEMINI_API_KEY}"
-    
-    payload = {
-        "contents": [{
-            "parts": [{"text": prompt}]
-        }]
-    }
+    payload = {"contents": [{"parts": [{"text": prompt}]}]}
 
     try:
         response = requests.post(url, json=payload, headers={"Content-Type": "application/json"}, timeout=15)
         if response.status_code == 200:
             result = response.json()
-            caption = result['candidates'][0]['content']['parts'][0]['text'].strip()
-            return caption
-        else:
-            print(f"Gemini API Error: {response.status_code} - {response.text}")
+            return result['candidates'][0]['content']['parts'][0]['text'].strip()
     except Exception as e:
-        print(f"Exception during Gemini API call: {e}")
+        print(f"Gemini Exception: {e}")
 
-    return f"قطعة أنيقة وعصرية، شوفوا كامل التفاصيل في الرابط ✨"
+    return "قطعة أنيقة وعصرية، شوفوا كامل التفاصيل في الرابط ✨"
 
 
 def get_shein_product(url):
     """
-    استخدام cloudscraper لتجاوز حظر شي إن وجلب العنوان والصورة
+    فك التوجيه وتجاوز حماية شي إن لجلب العنوان والصورة
     """
     try:
         scraper = cloudscraper.create_scraper(
             browser={
                 'browser': 'chrome',
-                'platform': 'windows',
-                'desktop': True
+                'platform': 'android',
+                'desktop': False
             }
         )
         
         proxies = {"http": PROXY_URL, "https": PROXY_URL} if PROXY_URL else None
-        r = scraper.get(url, timeout=15, proxies=proxies)
+        
+        # تتبع الرابط حتى الوصول للرابط النهائي
+        res = scraper.get(url, timeout=15, proxies=proxies, allow_redirects=True)
 
-        if r.status_code == 200 and len(r.text) > 1000:
-            soup = BeautifulSoup(r.text, "html.parser")
+        if res.status_code == 200:
+            soup = BeautifulSoup(res.text, "html.parser")
 
             title = None
             og_title = soup.select_one('meta[property="og:title"]')
-            if og_title:
-                title = og_title.get("content", "").strip()
+            if og_title and og_title.get("content"):
+                title = og_title["content"].strip()
             
             if not title:
                 title_tag = soup.select_one("title")
@@ -92,8 +86,8 @@ def get_shein_product(url):
 
             image = None
             og_image = soup.select_one('meta[property="og:image"]')
-            if og_image:
-                image = og_image.get("content", "").strip()
+            if og_image and og_image.get("content"):
+                image = og_image["content"].strip()
 
             if image:
                 if image.startswith("//"):
@@ -101,11 +95,13 @@ def get_shein_product(url):
                 elif image.startswith("/"):
                     image = "https://www.shein.com" + image
 
-            if title:
+            if title and "SHEIN" not in title and len(title) > 3:
+                return {"full_title": title, "image": image}
+            elif title:
                 return {"full_title": title, "image": image}
 
     except Exception as e:
-        print(f"Cloudscraper error: {e}")
+        print(f"Scraping Error: {e}")
 
     return None
 
@@ -125,12 +121,10 @@ def handler(msg):
         product = get_shein_product(original_url)
 
         if not product or not product.get("full_title"):
-            bot.edit_message_text("❌ تعذر قراءة عنوان المنتج من شي إن (يرجى التأكد من تشغيل البروكسي أو ScraperAPI)", msg.chat.id, wait.message_id)
+            bot.edit_message_text("❌ تعذر قراءة عنوان المنتج من شي إن، يرجى التأكد من تشغيل البروكسي أو ScraperAPI", msg.chat.id, wait.message_id)
             continue
 
-        # قراءة العنوان وتحليله عبر Gemini
         ai_caption = generate_caption_with_ai(product["full_title"])
-        
         post = f"{ai_caption}\n\n🔗 {original_url}"
 
         try:
@@ -154,7 +148,7 @@ WEBHOOK_URL_PATH = f"/webhook/{TOKEN}"
 
 @app.route("/")
 def index():
-    return "🤖 البوت يعمل بالذكاء الاصطناعي بنجاح"
+    return "🤖 البوت يعمل بنجاح"
 
 @app.route(WEBHOOK_URL_PATH, methods=["POST"])
 def webhook():
