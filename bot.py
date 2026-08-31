@@ -4,8 +4,8 @@ import time
 import os
 import requests
 import json
-from bs4 import BeautifulSoup
 from flask import Flask, request
+from playwright.sync_api import sync_playwright
 
 # ─── التوكن ومفاتيح التشغيل ───
 TOKEN = os.environ.get("BOT_TOKEN", "8888709197:AAEVCTpVticEzi-NBaWRdIQDmKJSxdRzA54")
@@ -50,70 +50,57 @@ def generate_caption_with_ai(product_title):
     return "قطعة أنيقة وعصرية، شوفوا كامل التفاصيل في الرابط ✨"
 
 
-def get_shein_product_details(raw_url):
+def get_shein_product_with_browser(raw_url):
     """
-    استخراج تفاصيل المنتج من شي إن بتتبع التحويل ومخاطبة الـ API المباشر
+    فتـح الرابط باستخدام متصفح Chromium حقيقي لتجاوز الحماية وقراءة اسم المنتج والصورة
     """
-    session = requests.Session()
-    session.headers.update({
-        "User-Agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 16_6 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.6 Mobile/15E148 Safari/604.1",
-        "Accept-Language": "ar-SA,ar;q=0.9,en-US;q=0.8,en;q=0.7",
-        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8"
-    })
-
     try:
-        # 1. تتبع التحويل للحصول على الرابط الحقيقي
-        res = session.get(raw_url, allow_redirects=True, timeout=12)
-        final_url = res.url
-        html_content = res.text
-
-        title = None
-        image = None
-
-        # 2. محاولة قراءة الوسوم من الـ HTML المرجوع أولاً
-        soup = BeautifulSoup(html_content, "html.parser")
-        
-        og_title = soup.select_one('meta[property="og:title"]') or soup.select_one('meta[name="twitter:title"]')
-        if og_title and og_title.get("content"):
-            title = og_title["content"].strip()
-
-        og_image = soup.select_one('meta[property="og:image"]') or soup.select_one('meta[name="twitter:image"]')
-        if og_image and og_image.get("content"):
-            image = og_image["content"].strip()
-
-        # 3. إذا فشل القراءة المباشرة، نبحث عن رقم القطعة (goods_id) لاستعلام API شي إن المباشر
-        if not title or "SHEIN" in title or "OneLink" in title:
-            goods_id_match = re.search(r'goods_id[=\/](\d+)', final_url) or re.search(r'-p-(\d+)', final_url) or re.search(r'p-(\d+)', html_content)
+        with sync_playwright() as p:
+            # تشغيل المتصفح في الخفاء
+            browser = p.chromium.launch(headless=True, args=['--no-sandbox', '--disable-setuid-sandbox'])
             
-            if goods_id_match:
-                goods_id = goods_id_match.group(1)
-                api_url = f"https://ar.shein.com/goods-detail-api-{goods_id}.html"
-                api_res = session.get(api_url, timeout=10)
-                
-                if api_res.status_code == 200:
-                    try:
-                        data = api_res.json()
-                        if 'info' in data and 'goods_name' in data['info']:
-                            title = data['info']['goods_name']
-                            image = data['info'].get('goods_img', image)
-                    except Exception:
-                        pass
+            # محاكاة متصفح آيفون لتخطي حظر الأجهزة
+            context = browser.new_context(
+                user_agent="Mozilla/5.0 (iPhone; CPU iPhone OS 16_6 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.6 Mobile/15E148 Safari/604.1",
+                viewport={'width': 390, 'height': 844},
+                locale="ar-SA"
+            )
+            
+            page = context.new_page()
+            
+            # الانتقال للرابط والانتظار حتى اكتمال التوجيه والتحميل
+            page.goto(raw_url, wait_until="domcontentloaded", timeout=30000)
+            page.wait_for_timeout(3000) # انتظار 3 ثوان لتأكيد تحميل عناصر الصفحة
 
-        # 4. تنظيف العنوان والروابط
-        if title:
-            title = re.sub(r"\s*\|\s*SHEIN.*$", "", title, flags=re.IGNORECASE).strip()
+            # استخراج اسم المنتج والصورة من الوسوم
+            title = page.evaluate("""() => {
+                const metaOg = document.querySelector('meta[property="og:title"]') || document.querySelector('meta[name="twitter:title"]');
+                if (metaOg && metaOg.content) return metaOg.content;
+                return document.title;
+            }""")
 
-        if image:
-            if image.startswith("//"):
+            image = page.evaluate("""() => {
+                const metaImg = document.querySelector('meta[property="og:image"]') || document.querySelector('meta[name="twitter:image"]');
+                if (metaImg && metaImg.content) return metaImg.content;
+                return null;
+            }""")
+
+            browser.close()
+
+            # تنظيف العنوان
+            if title:
+                title = re.sub(r"\s*\|\s*SHEIN.*$", "", title, flags=re.IGNORECASE).strip()
+
+            if image and image.startswith("//"):
                 image = "https:" + image
-            elif image.startswith("/"):
-                image = "https://www.shein.com" + image
 
-        if title and len(title) > 3 and "OneLink" not in title:
-            return {"full_title": title, "image": image}
+            if title and len(title) > 3 and "SHEIN" not in title and "OneLink" not in title:
+                return {"full_title": title, "image": image}
+            elif title and len(title) > 5:
+                return {"full_title": title, "image": image}
 
     except Exception as e:
-        print(f"Error fetching product: {e}")
+        print(f"Playwright Scraping Error: {e}")
 
     return None
 
@@ -128,9 +115,9 @@ def handler(msg):
         return
 
     for original_url in urls:
-        wait = bot.reply_to(msg, "⏳ جاري قراءة تفاصيل المنتج بالذكاء الاصطناعي...")
+        wait = bot.reply_to(msg, "⏳ جاري فتح الرابط بمتصفح آلي وقراءة تفاصيل القطعة...")
 
-        product = get_shein_product_details(original_url)
+        product = get_shein_product_with_browser(original_url)
 
         if not product or not product.get("full_title"):
             bot.edit_message_text("❌ تعذر قراءة عنوان المنتج، يرجى التأكد من صحة الرابط أو المحاولة لاحقاً.", msg.chat.id, wait.message_id)
