@@ -51,63 +51,87 @@ def generate_caption_with_ai(product_title):
     return "قطعة أنيقة وعصرية، شوفوا كامل التفاصيل في الرابط ✨"
 
 
-def fetch_shein_details(raw_url):
+def parse_shein_onelink(url):
     """
-    سحب تفاصيل المنتج من خلال تجاوز توجيهات AppsFlyer / OneLink
+    استخراج المعلمات الحقيقية واسم القطعة والصورة لتجاوز حظر onelink
     """
-    # 1. إرسال الطلب عبر ScraperAPI مع تفعيل رؤوس متصفح حقيقي لتجاوز صفحة الهبوط
-    scraper_url = f"http://api.scraperapi.com?api_key={SCRAPERAPI_KEY}&url={requests.utils.quote(raw_url)}&keep_headers=true&render=true"
-    
-    headers = {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
-        "Accept-Language": "ar-SA,ar;q=0.9,en-US;q=0.8,en;q=0.7"
-    }
+    session = requests.Session()
+    session.headers.update({
+        "User-Agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 16_6 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.6 Mobile/15E148 Safari/604.1",
+        "Accept-Language": "ar-SA,ar;q=0.9"
+    })
 
     try:
-        r = requests.get(scraper_url, headers=headers, timeout=40)
-        if r.status_code == 200:
-            soup = BeautifulSoup(r.text, "html.parser")
+        # Step 1: تتبع التحويل
+        res = session.get(url, allow_redirects=True, timeout=15)
+        html = res.text
+        final_url = res.url
 
-            title = None
-            image = None
+        # البحث عن الوسوم العادية أولاً
+        soup = BeautifulSoup(html, "html.parser")
+        
+        title = None
+        image = None
 
-            # البحث عن وسم OpenGraph الأساسي
-            og_title = soup.select_one('meta[property="og:title"]') or soup.select_one('meta[name="twitter:title"]')
-            if og_title and og_title.get("content"):
-                title = og_title["content"].strip()
+        og_title = soup.select_one('meta[property="og:title"]') or soup.select_one('meta[name="twitter:title"]')
+        if og_title and og_title.get("content"):
+            title = og_title["content"].strip()
 
-            og_image = soup.select_one('meta[property="og:image"]') or soup.select_one('meta[name="twitter:image"]')
-            if og_image and og_image.get("content"):
-                image = og_image["content"].strip()
+        og_image = soup.select_one('meta[property="og:image"]') or soup.select_one('meta[name="twitter:image"]')
+        if og_image and og_image.get("content"):
+            image = og_image["content"].strip()
 
-            # البحث داخل نصوص JSON المدمجة إذا لم يجد العناوين في Meta
-            if not title or "SHEIN" in title:
-                scripts = soup.find_all('script')
-                for script in scripts:
-                    text = script.string if script.string else ""
-                    if "goods_name" in text:
-                        match = re.search(r'"goods_name"\s*:\s*"([^"]+)"', text)
-                        if match:
-                            title = match.group(1)
-                            break
+        # Step 2: إذا كان العنوان يحتوي على OneLink أو فارغ، نستخرج كود المنتج من الرابط النهائي
+        if not title or "OneLink" in title or "SHEIN" == title.strip():
+            # استخراج اسم المنتج أو رقم القطعة من رابط التوجيه النهائي
+            goods_id_match = re.search(r'goods_id[=\/](\d+)', final_url) or re.search(r'-p-(\d+)', final_url)
+            
+            if goods_id_match:
+                goods_id = goods_id_match.group(1)
+                # الاستعلام من API الجوال المباشر الخاص بشي إن بدون حظر Scraper
+                api_req = session.get(f"https://ar.shein.com/goods-detail-api-{goods_id}.html", timeout=10)
+                if api_req.status_code == 200:
+                    try:
+                        data = api_req.json()
+                        if 'info' in data and 'goods_name' in data['info']:
+                            title = data['info']['goods_name']
+                            image = data['info'].get('goods_img', image)
+                    except Exception:
+                        pass
 
-            if not title and soup.title:
-                title = soup.title.get_text(strip=True)
-                title = re.sub(r"\s*\|\s*SHEIN.*$", "", title, flags=re.IGNORECASE)
+        # Step 3: التنظيف والتحقق
+        if title:
+            title = re.sub(r"\s*\|\s*SHEIN.*$", "", title, flags=re.IGNORECASE)
 
-            # تعديل رابط الصورة
-            if image:
-                if image.startswith("//"):
-                    image = "https:" + image
-                elif image.startswith("/"):
-                    image = "https://www.shein.com" + image
+        if image:
+            if image.startswith("//"):
+                image = "https:" + image
+            elif image.startswith("/"):
+                image = "https://www.shein.com" + image
 
-            # إرجاع النتيجة إذا تم العثور على اسم حقيقي للمنتج
-            if title and len(title) > 3 and "OneLink" not in title:
-                return {"full_title": title, "image": image}
+        if title and len(title) > 3 and "OneLink" not in title:
+            return {"full_title": title, "image": image}
 
     except Exception as e:
-        print(f"Fetch Shein Error: {e}")
+        print(f"Direct Parse Error: {e}")
+
+    # Step 4: المحاولة الاحتياطية المتقدمة عبر ScraperAPI مع رؤوس هاتف ذكي
+    if SCRAPERAPI_KEY:
+        try:
+            s_url = f"http://api.scraperapi.com?api_key={SCRAPERAPI_KEY}&url={requests.utils.quote(url)}&device_type=mobile"
+            r = requests.get(s_url, timeout=30)
+            if r.status_code == 200:
+                soup = BeautifulSoup(r.text, "html.parser")
+                og_title = soup.select_one('meta[property="og:title"]')
+                og_image = soup.select_one('meta[property="og:image"]')
+                
+                title = og_title["content"].strip() if og_title else None
+                image = og_image["content"].strip() if og_image else None
+                
+                if title:
+                    return {"full_title": title, "image": image}
+        except Exception as e:
+            print(f"ScraperAPI Fallback Error: {e}")
 
     return None
 
@@ -122,12 +146,12 @@ def handler(msg):
         return
 
     for original_url in urls:
-        wait = bot.reply_to(msg, "⏳ جاري تتبع رابط شي إن وتحليل القطعة بالذكاء الاصطناعي...")
+        wait = bot.reply_to(msg, "⏳ جاري استخراج تفاصيل المنتج وتحليله بالذكاء الاصطناعي...")
 
-        product = fetch_shein_details(original_url)
+        product = parse_shein_onelink(original_url)
 
         if not product or not product.get("full_title"):
-            bot.edit_message_text("❌ تعذر قراءة عنوان المنتج، يرجى التأكد من صحة الرابط.", msg.chat.id, wait.message_id)
+            bot.edit_message_text("❌ تعذر قراءة عنوان المنتج من رابط شي إن، يرجى التأكد من صحة الرابط.", msg.chat.id, wait.message_id)
             continue
 
         ai_caption = generate_caption_with_ai(product["full_title"])
