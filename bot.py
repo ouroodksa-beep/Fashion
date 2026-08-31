@@ -4,21 +4,20 @@ import time
 import os
 import requests
 import json
-import cloudscraper
 from bs4 import BeautifulSoup
 from flask import Flask, request
 
 # ─── التوكن ومفاتيح التشغيل ───
 TOKEN = os.environ.get("BOT_TOKEN", "8888709197:AAEVCTpVticEzi-NBaWRdIQDmKJSxdRzA54")
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "AIzaSyAD68JzBWieLXb9kE-7qOg-8p10_EkY518")
-PROXY_URL = os.environ.get("PROXY_URL")
+SCRAPERAPI_KEY = os.environ.get("SCRAPERAPI_KEY", "fb7742b2e62f3699d5059eea890268dd")
 
 bot = telebot.TeleBot(TOKEN)
 
 
 def generate_caption_with_ai(product_title):
     """
-    إرسال عنوان المنتج للذكاء الاصطناعي (Gemini) ليحلله بدقة ويكتب وصفًا مناسبًا لنوعه ولونه
+    إرسال عنوان المنتج لـ Gemini ليحلله بدقة ويكتب وصفًا أنثويًا جذابًا
     """
     if not GEMINI_API_KEY:
         return "قطعة تجننن وتفتح النفس! شوفوا التفاصيل بالرابط ✨💕"
@@ -31,7 +30,7 @@ def generate_caption_with_ai(product_title):
 
 المطلوب:
 1. اكتب منشورًا قصيرًا وجذابًا جدًا بالعامية السعودية/الخليجية العصرية بنفس أسلوب قنوات التليجرام (استخدم كلمات حماسية مثل: مرررره، يجننن، خيالي، تخدمكم، رايقة، مع إموجيات مناسبة).
-2. يجب أن يكون الكلام مطبقًا 100% على طبيعة المنتج (مثلاً: إذا كان مج أو كوب لا تتحدث عن اللبس بل عن القهوة والروقان، إذا كان مكياج تحدث عن النضارة، إذا كان فستان تحدث عن الكشخة والقصة).
+2. يجب أن يكون الكلام مطبقًا 100% على طبيعة المنتج (مثلاً: إذا كان مج أو كوب لا تتحدث عن اللبس بل عن القهوة والروقان، إذا كان مكياج تحدث عن النضارة والدمج، إذا كان فستان تحدث عن الكشخة والقصة).
 3. اكتب النص التسويقي المباشر بدون مقدمات أو شرح أو أسعار.
 4. اذكر التفاصيل (اللون/النوع/الخامة) بشكل دقيق بناءً على العنوان فقط بدون تأليف ألوان غير موجودة.
 
@@ -54,24 +53,19 @@ def generate_caption_with_ai(product_title):
 
 def get_shein_product(url):
     """
-    فك التوجيه وتجاوز حماية شي إن لجلب العنوان والصورة
+    تجاوز حماية شي إن عبر ScraperAPI لاستخراج اسم المنتج وصورته
     """
-    try:
-        scraper = cloudscraper.create_scraper(
-            browser={
-                'browser': 'chrome',
-                'platform': 'android',
-                'desktop': False
-            }
-        )
-        
-        proxies = {"http": PROXY_URL, "https": PROXY_URL} if PROXY_URL else None
-        
-        # تتبع الرابط حتى الوصول للرابط النهائي
-        res = scraper.get(url, timeout=15, proxies=proxies, allow_redirects=True)
+    if not SCRAPERAPI_KEY:
+        print("ScraperAPI key is missing!")
+        return None
 
-        if res.status_code == 200:
-            soup = BeautifulSoup(res.text, "html.parser")
+    # تحويل الطلب عبر ScraperAPI لتجاوز الحظر وتتبع التوجيه تلقائياً
+    api_url = f"http://api.scraperapi.com?api_key={SCRAPERAPI_KEY}&url={requests.utils.quote(url)}&render=true"
+
+    try:
+        r = requests.get(api_url, timeout=35)
+        if r.status_code == 200:
+            soup = BeautifulSoup(r.text, "html.parser")
 
             title = None
             og_title = soup.select_one('meta[property="og:title"]')
@@ -95,13 +89,11 @@ def get_shein_product(url):
                 elif image.startswith("/"):
                     image = "https://www.shein.com" + image
 
-            if title and "SHEIN" not in title and len(title) > 3:
-                return {"full_title": title, "image": image}
-            elif title:
+            if title:
                 return {"full_title": title, "image": image}
 
     except Exception as e:
-        print(f"Scraping Error: {e}")
+        print(f"ScraperAPI Error: {e}")
 
     return None
 
@@ -121,7 +113,7 @@ def handler(msg):
         product = get_shein_product(original_url)
 
         if not product or not product.get("full_title"):
-            bot.edit_message_text("❌ تعذر قراءة عنوان المنتج من شي إن، يرجى التأكد من تشغيل البروكسي أو ScraperAPI", msg.chat.id, wait.message_id)
+            bot.edit_message_text("❌ تعذر قراءة عنوان المنتج، يرجى إعادة المحاولة.", msg.chat.id, wait.message_id)
             continue
 
         ai_caption = generate_caption_with_ai(product["full_title"])
