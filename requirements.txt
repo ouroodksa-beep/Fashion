@@ -1,4 +1,5 @@
-telebot
-flask
-playwright
+pyTelegramBotAPI
+requests
 beautifulsoup4
+flask
+cloudscraper
