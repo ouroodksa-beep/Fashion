@@ -51,61 +51,94 @@ def generate_caption_with_ai(product_title):
     return "قطعة أنيقة وعصرية، شوفوا كامل التفاصيل في الرابط ✨"
 
 
+def resolve_shein_link(url):
+    """
+    استخراج الرابط الحقيقي للمنتج وتجنب روابط التطبيقات Deep Links
+    """
+    session = requests.Session()
+    session.headers.update({
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
+        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
+        "Accept-Language": "ar,en-US;q=0.9,en;q=0.8"
+    })
+    
+    try:
+        res = session.get(url, allow_redirects=True, timeout=12)
+        final_url = res.url
+        
+        # إذا تحول الرابط لرابط ويب عادي يحتوي على p- أو -p-
+        if "shein.com" in final_url and ("-p-" in final_url or "p-" in final_url):
+            return final_url
+            
+        # محاولة استخراج الرابط المباشر من الـ HTML إذا كان هناك Meta Refresh
+        soup = BeautifulSoup(res.text, "html.parser")
+        meta_refresh = soup.find("meta", attrs={"http-equiv": re.compile(r"refresh", re.I)})
+        if meta_refresh and "url=" in meta_refresh.get("content", "").lower():
+            extracted_url = meta_refresh["content"].lower().split("url=")[-1].strip()
+            if extracted_url.startswith("http"):
+                return extracted_url
+
+        return final_url
+    except Exception as e:
+        print(f"Resolve Link Error: {e}")
+        return url
+
+
 def get_shein_product(raw_url):
     """
-    جلب صفحة SHEIN بالكامل عبر ScraperAPI مع تفعيل الـ Rendering لتتبع التحويلات
+    تفكيك الرابط المختصر أولاً ثم كشط بيانات المنتج المباشرة
     """
-    api_url = f"http://api.scraperapi.com?api_key={SCRAPERAPI_KEY}&url={requests.utils.quote(raw_url)}&render=true"
+    # 1. فك التوجيه للحصول على رابط الويب الصريح
+    target_url = resolve_shein_link(raw_url)
+    print(f"Resolved Target URL: {target_url}")
+
+    # 2. إرسال الرابط النهائي إلى ScraperAPI
+    api_url = f"http://api.scraperapi.com?api_key={SCRAPERAPI_KEY}&url={requests.utils.quote(target_url)}"
 
     try:
-        r = requests.get(api_url, timeout=40)
+        r = requests.get(api_url, timeout=30)
         if r.status_code == 200:
             soup = BeautifulSoup(r.text, "html.parser")
 
             title = None
             image = None
 
-            # 1. البحث في بيانات Schema / JSON-LD المدمجة بالصفحة (أدق مصدر)
-            for script in soup.find_all('script', type='application/ld+json'):
-                try:
-                    data = json.loads(script.string)
-                    if isinstance(data, dict) and data.get('@type') == 'Product':
-                        title = data.get('name')
-                        image = data.get('image')
-                        if isinstance(image, list) and image:
-                            image = image[0]
-                        break
-                except Exception:
-                    continue
+            # استخراج اسم المنتج والصورة من الوسوم المباشرة
+            og_title = soup.select_one('meta[property="og:title"]') or soup.select_one('meta[name="twitter:title"]')
+            if og_title and og_title.get("content"):
+                title = og_title["content"].strip()
 
-            # 2. البحث في Meta Tags إذا لم نجد البيانات في JSON
+            og_image = soup.select_one('meta[property="og:image"]') or soup.select_one('meta[name="twitter:image"]')
+            if og_image and og_image.get("content"):
+                image = og_image["content"].strip()
+
+            # البديل 1: البحث في بيانات JSON-LD الداخلية
             if not title:
-                og_title = soup.select_one('meta[property="og:title"]')
-                if og_title and og_title.get("content"):
-                    title = og_title["content"].strip()
+                for script in soup.find_all('script', type='application/ld+json'):
+                    try:
+                        data = json.loads(script.string)
+                        if isinstance(data, dict) and 'name' in data:
+                            title = data.get('name')
+                            if 'image' in data:
+                                img_val = data['image']
+                                image = img_val[0] if isinstance(img_val, list) else img_val
+                            break
+                    except Exception:
+                        continue
 
-            if not image:
-                og_image = soup.select_one('meta[property="og:image"]')
-                if og_image and og_image.get("content"):
-                    image = og_image["content"].strip()
+            # البديل 2: الوسم العادي <title>
+            if not title and soup.title:
+                title = soup.title.get_text(strip=True)
+                title = re.sub(r"\s*\|\s*SHEIN.*$", "", title, flags=re.IGNORECASE)
 
-            # 3. محاولة أخيرة من وسم <title>
-            if not title:
-                title_tag = soup.select_one("title")
-                if title_tag:
-                    title = title_tag.get_text(strip=True)
-                    title = re.sub(r"\s*\|\s*SHEIN.*$", "", title, flags=re.IGNORECASE)
-
-            # تنظيف رابط الصورة
+            # تنظيف وتنسيق رابط الصورة
             if image:
                 if image.startswith("//"):
                     image = "https:" + image
                 elif image.startswith("/"):
                     image = "https://www.shein.com" + image
 
-            if title and "SHEIN" not in title and len(title) > 3:
-                return {"full_title": title, "image": image}
-            elif title:
+            if title:
                 return {"full_title": title, "image": image}
 
     except Exception as e:
@@ -124,7 +157,7 @@ def handler(msg):
         return
 
     for original_url in urls:
-        wait = bot.reply_to(msg, "⏳ جاري فتح الرابط وتتبع المنتج بالذكاء الاصطناعي...")
+        wait = bot.reply_to(msg, "⏳ جاري فك الرابط وتحليل المنتج بالذكاء الاصطناعي...")
 
         product = get_shein_product(original_url)
 
