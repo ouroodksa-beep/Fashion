@@ -29,6 +29,7 @@ WORDS = {
     "socks": "جوارب", "tights": "جورب شفاف", "stockings": "شرابات",
     "pajamas": "بيجاما", "pyjamas": "بيجاما", "nightwear": "لبس نوم",
     "lingerie": "لانجري", "bra": "صدرية", "underwear": "ملابس داخلية",
+    "bedsheet": "مفرش", "bedding": "مفرش", "duvet": "مفرش", "quilt": "مفرش",
     
     # أحذية
     "shoes": "حذاء", "sneakers": "سنيكرز", "trainers": "حذاء رياضي",
@@ -75,16 +76,6 @@ WORDS = {
     "printed": "مطبوع", "floral": "زهري", "striped": "مخطط",
     "checked": "كاروهات", "plaid": "كاروهات", "polka dot": "منقط",
     
-    # قصات وتفاصيل
-    "slim fit": "ضيق", "regular fit": "عادي", "loose fit": "واسع",
-    "oversized": "أوفرسايز", "skinny": "سكيني", "straight": "مستقيم",
-    "wide leg": "رجل واسعة", "cropped": "قصير", "crop": "قصير",
-    "mini": "ميني", "midi": "ميدي", "maxi": "ماكسي",
-    "ruched": "مكشكش", "pleated": "مطوي", "ruffle": "كشكشة",
-    "embroidered": "مطرز", "v-neck": "رقبة V", "round neck": "رقبة دائرية",
-    "long sleeve": "أكمام طويلة", "short sleeve": "أكمام قصيرة",
-    "sleeveless": "بدون أكمام", "puff sleeve": "أكمام منفوخة",
-    
     # عدد القطع
     "set": "طقم", "pack": "طقم", "bundle": "طقم",
 }
@@ -100,67 +91,20 @@ SKIP_WORDS = {
     "office", "travel", "sexy", "pure", "group", "beauty", "color", "sizing", "com"
 }
 
-TYPE_SET = {"فستان", "فستان سهرة", "قميص", "بلوزة", "توب", "تيشيرت", "هودي",
-            "سويت شيرت", "جاكيت", "معطف", "بليزر", "كارديجان", "سترة", "بلوفر",
-            "بنطلون", "جينز", "شينو", "شورت", "تنورة", "ليقنز", "جمبسوت", "رومبر",
-            "بدي", "أوفرول", "بيجاما", "لبس نوم", "لانجري", "صدرية", "ملابس داخلية",
-            "حذاء", "سنيكرز", "صندل", "كعب عالي", "كعب", "باليرينا",
-            "لوفر", "أوكسفورد", "بوت", "بوت كاحل", "شبشب", "حذاء رياضي",
-            "شنطة", "شنطة يد", "شنطة ظهر", "توت باج", "كلتش", "كروس بودي",
-            "محفظة", "حزام", "ربطة عنق", "وشاح", "قفازات", "قبعة", "كاب",
-            "نظارة شمسية", "ساعة", "مجوهرات", "عقد", "سوار", "خاتم", "حلق", "مرآة",
-            "عطر", "كولونيا", "مكياج", "أحمر شفاه", "ملمع شفاه", "كريم أساس",
-            "ماسكارا", "آيلاينر", "ظل عيون", "بلاشر", "هايلايتر", "كونسيلر",
-            "برايمر", "مثبت مكياج", "كريم", "لوشن", "سيروم", "تونر", "مرطب",
-            "واقي شمس", "شامبو", "بلسم", "ماسك", "صابون", "فرشاة",
-            "جوارب", "جورب شفاف", "شرابات"}
+TYPE_SET = set(WORDS.values())
 
-COLOR_SET = {"أسود", "أبيض", "أحمر", "أزرق", "أخضر", "أصفر", "وردي", "بنفسجي",
-             "برتقالي", "بني", "بيج", "رمادي", "كحلي", "عنابي", "زيتي", "كاكي",
-             "كريمي", "عاجي", "ذهبي", "فضي", "روز جولد", "ملون", "مطبوع", "زهري", "مخطط", "كاروهات", "منقط"}
-
-MATERIAL_SET = {"جينز", "جلد", "شمواه", "مخمل", "ساتان", "حرير", "قطن", "كتان", "صوف", "محبوك", "شبك", "دانتيل", "شيفون", "أورجانزا", "ترتر"}
-
-EMOJI_MAP = {
-    "فستان": "👗", "فستان سهرة": "✨", "قميص": "👔", "بلوزة": "👚", "توب": "👕",
-    "تيشيرت": "👕", "هودي": "🧥", "سويت شيرت": "🧥", "جاكيت": "🧥", "معطف": "🧥",
-    "بليزر": "🤵", "كارديجان": "🧶", "سترة": "🧶", "بلوفر": "🧶", "بنطلون": "👖", 
-    "جينز": "👖", "شورت": "🩳", "تنورة": "👗", "ليقنز": "🖤", "جمبسوت": "👗", 
-    "رومبر": "👗", "بدي": "👙", "بيجاما": "🌙", "لبس نوم": "🌙", "لانجري": "💋", 
-    "حذاء": "👞", "سنيكرز": "👟", "صندل": "🩴", "كعب عالي": "👠", "كعب": "👠",
-    "باليرينا": "🥿", "بوت": "👢", "شبشب": "🩴", "شنطة": "👜", "شنطة يد": "👜", 
-    "شنطة ظهر": "🎒", "توت باج": "🛍️", "كلتش": "👝", "كروس بودي": "👜", "محفظة": "👛", 
-    "نظارة شمسية": "🕶️", "ساعة": "⌚", "مجوهرات": "💎", "عقد": "📿", "حلق": "💎", 
-    "عطر": "🌸", "مكياج": "💄", "أحمر شفاه": "💋", "كريم": "🧴", "مرطب": "🧴"
+FEMALE_ONLY_TYPES = {
+    "فستان", "فستان سهرة", "بلوزة", "تنورة", "كعب عالي", "كعب", "باليرينا", 
+    "شنطة يد", "كلتش", "توت باج", "كروس بودي", "بلاشر", "أحمر شفاه", "ملمع شفاه", 
+    "ماسكارا", "آيلاينر", "ظل عيون", "هايلايتر", "كونسيلر", "برايمر", "مثبت مكياج", 
+    "رومبر", "بدي", "جمبسوت", "بيجاما", "لبس نوم", "لانجري", "صدرية", "ملابس داخلية", "مفرش"
 }
 
-
-def extract_quantity(title):
-    t = title.lower()
-    patterns = [
-        r'(\d+)\s*(?:pc|pcs|piece|pieces)\b',
-        r'(\d+)\s*-\s*(?:pc|pcs|piece|pieces)\b',
-        r'\b(?:set|pack|bundle)\s+of\s+(\d+)',
-        r'\b(\d+)\s*(?:set|pack|bundle)\b',
-    ]
-    for pat in patterns:
-        m = re.search(pat, t)
-        if m:
-            n = int(m.group(1))
-            if n > 1:
-                return f"{n} قطع"
-    if re.search(r'\b(?:set|pack|bundle)\b', t):
-        return "طقم"
-    return None
-
-
-def detect_gender(title):
-    t = title.lower()
-    if any(w in t for w in ["kids", "children", "child", "baby", "toddler", "infant", "girls'", "boy's"]):
-        return "أطفال"
-    if any(w in t for w in ["men", "man", "male", "mens", "men's", "boys'"]):
-        return "رجالي"
-    return "نسائي"
+BEAUTY_TYPES = {
+    "مكياج", "أحمر شفاه", "ملمع شفاه", "كريم أساس", "ماسكارا", "آيلاينر", 
+    "ظل عيون", "بلاشر", "هايلايتر", "كونسيلر", "برايمر", "مثبت مكياج", 
+    "كريم", "لوشن", "سيروم", "تونر", "مرطب", "واقي شمس", "شامبو", "بلسم", "ماسك", "صابون", "فرشاة"
+}
 
 
 def extract_keywords(title):
@@ -191,65 +135,51 @@ def extract_keywords(title):
 
 def build_description(title):
     kw = extract_keywords(title)
-    
     types = [k for k in kw if k in TYPE_SET]
-    colors = [k for k in kw if k in COLOR_SET]
-    materials = [k for k in kw if k in MATERIAL_SET]
-    
     main_type = max(types, key=len) if types else ""
-    quantity = extract_quantity(title)
-    gender = detect_gender(title)
-    
-    color = colors[0] if colors else ""
-    material = materials[0] if materials else ""
-    emoji = EMOJI_MAP.get(main_type, "✨")
-    
-    desc_elements = []
-    if quantity: desc_elements.append(f"({quantity})")
-    if color: desc_elements.append(f"لون {color}")
-    if material: desc_elements.append(f"خامة {material}")
-    
-    detail_str = " - ".join(desc_elements)
-    
-    # ─── صياغة النصوص بدقة متناهية ───
-    if gender == "أطفال":
-        item_word = f"الـ {main_type}" if main_type else "القطعة"
-        phrase = f"يا عيني على الكيوت! شوفوا {item_word} للأطفال تجنن باللبس 👶{emoji}"
-    elif gender == "رجالي":
-        item_word = f"الـ {main_type}" if main_type else "هذا المنتج"
-        phrase = f"للشباب.. شوفوا {item_word} ترتيب وشياكة مو عادية 🔥{emoji}"
-    else:  # نسائي
-        if main_type:
-            intros = [
-                f"يا بنات شوفوا هذا الـ {main_type} يجنن وأناقة مو عادية! 😍{emoji}",
-                f"بنات الحقوا على هذا الـ {main_type} خيالي باللبس وطلته تاخد العقل 💕{emoji}",
-                f"شوفوا الروعة يا بنات! {main_type} شيك ومرتب بشكل مو عادي 🔥{emoji}"
-            ]
-        else:
-            intros = [
-                f"يا بنات شوفوا هذه القطعة تجنن وأناقتها مو عادية! 😍✨",
-                f"بنات شوفوا هذه القطعة الخيالية باللبس، طلتها تاخد العقل 💕✨"
-            ]
-        phrase = random.choice(intros)
-    
-    # الخاتمة شيك وبدون "قبل ينفد"
-    closings = [
-        "تسوقوا الآن من الرابط التالي 🛒✨",
-        "لطلب المنتج واستعراض التفاصيل 👇🛍️",
-        "رابط الطلب المباشر ✨🛒"
-    ]
-    selected_closing = random.choice(closings)
-    
-    if detail_str:
-        final_text = f"{phrase}\n📌 التفاصيل: {detail_str}\n\n{selected_closing}"
+
+    # 1. صياغات للمكياج والعناية بالبشرة
+    if main_type in BEAUTY_TYPES:
+        templates = [
+            "بناااااات أكثررر ميزة لاحظتها فيها ✨\n\nتخلي الجسسسسم يبرق ويرعد نضاااارة 😩🤍",
+            "مرررره عجبنيييي بنات 🤎\n\nوالأحلى إنها استخدمته بأكثر من طريقة! 👌🏻\nألوانه صبااااحية وناعمة تنفع للاستخدام اليومي بدون تفكير 🤎☕️",
+            "بنااات هالمنتج خيااالي للنضارة واللمعة ناعم ومكانه أساسي بالروتين ✨🧴"
+        ]
+        return random.choice(templates)
+
+    # 2. صياغات المفارش والمستلزمات
+    elif main_type == "مفرش":
+        templates = [
+            "عرووووسة وتبغين مفرش لجهازك؟ 👰🏻‍♀️\nحقيقي مفرش عروووسة بكل ما تعنيه الكلمة!",
+            "بنااات المفرررش يفتح النفس كأنه مفرش فنادق فخم وناعم مررره ✨🤍"
+        ]
+        return random.choice(templates)
+
+    # 3. صياغات الملابس والتنسيقات الأنثوية
     else:
-        final_text = f"{phrase}\n\n{selected_closing}"
-        
-    return final_text
+        if main_type in ["توب", "بلوزة", "بدي"]:
+            templates = [
+                "دايم أحببب التوبات اللي كذا 🤍\n\nتنلبس كطقم أو تدخل مع تنسيقات ثانية بكل سهولة ✨",
+                "القططططع اللي كذا تخدمكم وقت الدوامااات خصوصًا تحت الأقمصة✨"
+            ]
+            return random.choice(templates)
+        elif main_type in ["قميص", "جاكيت", "بليزر", "بنطلون"]:
+            templates = [
+                "رهييييبة للدوامااات وللصييف ☀️\n\nخفيفة ومرتبة وتخدمكم كثيييير بالتنسيقات اليومية✨",
+                "القططططع اللي كذا تخدمكم وقت الدوامااات مرتبة وشيك✨"
+            ]
+            return random.choice(templates)
+        else:
+            templates = [
+                "أحببب القطع الأنثوووية اللي كذا 🥹\nألوااانها رايييييقة وناعمة بشكل ✨",
+                "موديلها غرييييب بس حللللووو وتغييررر! \n\nخصوصًا للي يحبون القطع المختلفة والستايل اللي مو مكرر 🤌🏻",
+                "شوفوا الأنوقاااه يا بنات! القطعة تجننن باللبس وطلتها تاخد العقل 💕✨"
+            ]
+            return random.choice(templates)
 
 
 def is_shein_url(url):
-    return "shein.com" in url.lower() or "onelink.shein.com" in url.lower()
+    return "shein.com" in url.lower() or "onelink.shein.com" in url.lower() or "ty.gl" in url.lower()
 
 
 def get_shein_product(url):
@@ -301,7 +231,7 @@ def get_shein_product(url):
                     image = "https://www.shein.com" + image
 
             if not title:
-                continue
+                title = "منتج مميز"
 
             return {
                 "full_title": title,
@@ -312,7 +242,7 @@ def get_shein_product(url):
             print(f"Attempt {attempt + 1} failed: {e}")
             continue
 
-    return None
+    return {"full_title": "منتج مميز", "image": None}
 
 
 @bot.message_handler(func=lambda m: True)
@@ -321,27 +251,19 @@ def handler(msg):
     urls = re.findall(r"https?://\S+", text)
 
     if not urls:
-        bot.reply_to(msg, "❌ يرجى إرسال رابط المنتج من شي إن")
+        bot.reply_to(msg, "❌ يرجى إرسال رابط المنتج")
         return
 
     for original_url in urls:
-        if not is_shein_url(original_url):
-            bot.reply_to(msg, "❌ الرابط يجب أن يكون من shein.com")
-            continue
-
         wait = bot.reply_to(msg, "⏳ جاري استخراج البيانات...")
 
         product = get_shein_product(original_url)
 
-        if not product:
-            bot.edit_message_text("❌ تعذر قراءة بيانات المنتج", msg.chat.id, wait.message_id)
-            continue
-
         product_caption = build_description(product["full_title"])
-        post = f"{product_caption}\n🔗 {original_url}"
+        post = f"{product_caption}\n\n🔗 {original_url}"
 
         try:
-            if product["image"]:
+            if product.get("image"):
                 bot.send_photo(msg.chat.id, product["image"], caption=post)
             else:
                 bot.send_message(msg.chat.id, post)
