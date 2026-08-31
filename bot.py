@@ -65,33 +65,25 @@ WORDS = {
     "chiffon": "شيفون", "organza": "أورجانزا", "sequin": "ترتر",
     
     # ألوان
-    "black": "الأسود", "white": "الأبيض", "red": "الأحمر", "blue": "الأزرق",
-    "green": "الأخضر", "yellow": "الأصفر", "pink": "الوردي", "purple": "البنفسجي",
-    "orange": "البرتقالي", "brown": "البني", "beige": " البيج", "grey": "الرمادي",
-    "gray": "الرمادي", "navy": "الكحلي", "burgundy": "العنابي", "maroon": "العنابي",
-    "olive": "الزيتي", "khaki": "الكاكي", "cream": "الكريمي", "ivory": "العاجي",
-    "gold": "الذهبي", "silver": "الفضي", "rose gold": "الروز جولد",
-    "multicolor": "متعدد الألوان", "colorful": "الملون",
-    "printed": "المطبوع", "floral": "الزهري", "striped": "المخطط",
-    "checked": "الكاروهات", "plaid": "الكاروهات", "polka dot": "المنقط",
-    "solid": "سادة", "plain": "سادة",
+    "black": "أسود", "white": "أبيض", "red": "أحمر", "blue": "أزرق",
+    "green": "أخضر", "yellow": "أصفر", "pink": "وردي", "purple": "بنفسجي",
+    "orange": "برتقالي", "brown": "بني", "beige": "بيج", "grey": "رمادي",
+    "gray": "رمادي", "navy": "كحلي", "burgundy": "عنابي", "maroon": "عنابي",
+    "olive": "زيتي", "khaki": "كاكي", "cream": "كريمي", "ivory": "عاجي",
+    "gold": "ذهبي", "silver": "فضي", "rose gold": "روز جولد",
+    "multicolor": "ملون", "colorful": "ملون",
+    "printed": "مطبوع", "floral": "زهري", "striped": "مخطط",
+    "checked": "كاروهات", "plaid": "كاروهات", "polka dot": "منقط",
     
-    # قصات وأنماط
+    # قصات وتفاصيل
     "slim fit": "ضيق", "regular fit": "عادي", "loose fit": "واسع",
-    "oversized": "أوفر سايز واسع", "skinny": "سكيني", "straight": "مستقيم",
-    "wide leg": "برجل واسعة", "flare": "منفوش", "cropped": "قصير", 
-    "crop": "قصير", "mini": "ميني", "midi": "ميدي", "maxi": "ماكسي",
-    "high waist": "بخصر عالي", "low waist": "بخصر منخفض",
-    "loose": "واسع",
-    
-    # تفاصيل
+    "oversized": "أوفرسايز", "skinny": "سكيني", "straight": "مستقيم",
+    "wide leg": "رجل واسعة", "cropped": "قصير", "crop": "قصير",
+    "mini": "ميني", "midi": "ميدي", "maxi": "ماكسي",
     "ruched": "مكشكش", "pleated": "مطوي", "ruffle": "كشكشة",
-    "embroidered": "مطرز", "zipper": "سحاب", "button": "أزرار",
-    "v-neck": "رقبة V", "v neck": "رقبة V", "round neck": "رقبة دائرية",
-    "polo neck": "رقبة بولو", "polo": "بولو",
+    "embroidered": "مطرز", "v-neck": "رقبة V", "round neck": "رقبة دائرية",
     "long sleeve": "أكمام طويلة", "short sleeve": "أكمام قصيرة",
     "sleeveless": "بدون أكمام", "puff sleeve": "أكمام منفوخة",
-    "boho": "بوهيمي", "casual": "كاجوال",
     
     # عدد القطع
     "set": "طقم", "pack": "طقم", "bundle": "طقم",
@@ -103,14 +95,9 @@ SKIP_WORDS = {
     "style", "look", "trend", "collection", "brand", "designer", "premium",
     "quality", "cheap", "affordable", "luxury", "exclusive", "limited",
     "edition", "season", "spring", "summer", "autumn", "fall", "winter",
-    "2023", "2024", "2025", "2026",
-    "x", "xl", "xxl", "s", "m", "l", "xs", "xxxl", "one size",
-    "plus size", "size", "cm", "mm", "inch", "inches", "ml", "g", "kg",
-    "usd", "eur", "gbp", "sar", "aed", "qar", "kwd", "egp", "off", "discount",
-    "office", "travel", "sexy", "pure", "group", "beauty", "color", "sizing",
-    "sephora", "joocyee", "com", "false", "patchwork", "slouchy", "ribbed",
-    "مكتب", "سفر", "يسافر", "جنسي", "نقي", "جماعية", "جمال", "لون", "تحجيم",
-    "خليط", "زائف", "مترهل", "مضلع", "رائع", "هالة", "منفوش"
+    "2023", "2024", "2025", "2026", "x", "xl", "xxl", "s", "m", "l", "xs", "xxxl", 
+    "one size", "plus size", "size", "cm", "mm", "inch", "usd", "sar", "off", "discount",
+    "office", "travel", "sexy", "pure", "group", "beauty", "color", "sizing", "com"
 }
 
 TYPE_SET = {"فستان", "فستان سهرة", "قميص", "بلوزة", "توب", "تيشيرت", "هودي",
@@ -128,41 +115,23 @@ TYPE_SET = {"فستان", "فستان سهرة", "قميص", "بلوزة", "تو
             "واقي شمس", "شامبو", "بلسم", "ماسك", "صابون", "فرشاة",
             "جوارب", "جورب شفاف", "شرابات"}
 
-COLOR_SET = {"الأسود", "الأبيض", "الأحمر", "الأزرق", "الأخضر", "الأصفر", "الوردي", "البنفسجي",
-             "البرتقالي", "البني", " البيج", "الرمادي", "الكحلي", "العنابي", "الزيتي", "الكاكي",
-             "الكريمي", "العاجي", "الذهبي", "الفضي", "الروز جولد", "متعدد الألوان", "الملون",
-             "المطبوع", "الزهري", "المخطط", "الكاروهات", "المنقط"}
+COLOR_SET = {"أسود", "أبيض", "أحمر", "أزرق", "أخضر", "أصفر", "وردي", "بنفسجي",
+             "برتقالي", "بني", "بيج", "رمادي", "كحلي", "عنابي", "زيتي", "كاكي",
+             "كريمي", "عاجي", "ذهبي", "فضي", "روز جولد", "ملون", "مطبوع", "زهري", "مخطط", "كاروهات", "منقط"}
 
-MATERIAL_SET = {"جينز", "جلد", "شمواه", "مخمل", "ساتان", "حرير", "قطن", "كتان",
-                "صوف", "محبوك", "شبك", "دانتيل", "شيفون", "أورجانزا", "ترتر"}
-
-FIT_SET = {"ضيق", "عادي", "واسع", "سكيني", "مستقيم", "برجل واسعة", "منفوش", "قصير",
-           "ميني", "ميدي", "ماكسي", "بخصر عالي", "بخصر منخفض", "أوفر سايز واسع"}
-
-NECK_SET = {"رقبة V", "رقبة دائرية", "رقبة بولو", "بولو"}
-SLEEVE_SET = {"أكمام طويلة", "أكمام قصيرة", "بدون أكمام", "أكمام منفوخة"}
-DETAIL_SET = {"مكشكش", "مطوي", "كشكشة", "مطرز", "سحاب", "أزرار", "بوهيمي", "كاجوال"}
+MATERIAL_SET = {"جينز", "جلد", "شمواه", "مخمل", "ساتان", "حرير", "قطن", "كتان", "صوف", "محبوك", "شبك", "دانتيل", "شيفون", "أورجانزا", "ترتر"}
 
 EMOJI_MAP = {
     "فستان": "👗", "فستان سهرة": "✨", "قميص": "👔", "بلوزة": "👚", "توب": "👕",
     "تيشيرت": "👕", "هودي": "🧥", "سويت شيرت": "🧥", "جاكيت": "🧥", "معطف": "🧥",
-    "بليزر": "🤵", "كارديجان": "🧶", "سترة": "🧶", "بلوفر": "🧶",
-    "بنطلون": "👖", "جينز": "👖", "شينو": "👖", "شورت": "🩳", "تنورة": "👗",
-    "ليقنز": "🖤", "جمبسوت": "👗", "رومبر": "👗", "بدي": "👙", "أوفرول": "👖",
-    "بيجاما": "🌙", "لبس نوم": "🌙", "لانجري": "💋", "صدرية": "👙", "ملابس داخلية": "👙",
+    "بليزر": "🤵", "كارديجان": "🧶", "سترة": "🧶", "بلوفر": "🧶", "بنطلون": "👖", 
+    "جينز": "👖", "شورت": "🩳", "تنورة": "👗", "ليقنز": "🖤", "جمبسوت": "👗", 
+    "رومبر": "👗", "بدي": "👙", "بيجاما": "🌙", "لبس نوم": "🌙", "لانجري": "💋", 
     "حذاء": "👞", "سنيكرز": "👟", "صندل": "🩴", "كعب عالي": "👠", "كعب": "👠",
-    "باليرينا": "🥿", "لوفر": "👞", "أوكسفورد": "👞", "بوت": "👢", "بوت كاحل": "👢",
-    "شبشب": "🩴", "حذاء رياضي": "👟",
-    "شنطة": "👜", "شنطة يد": "👜", "شنطة ظهر": "🎒", "توت باج": "🛍️", "كلتش": "👝",
-    "كروس بودي": "👜", "محفظة": "👛", "حزام": "🖤", "ربطة عنق": "👔", "وشاح": "🧣",
-    "قفازات": "🧤", "قبعة": "🎩", "كاب": "🧢", "نظارة شمسية": "🕶️", "ساعة": "⌚",
-    "مجوهرات": "💎", "عقد": "📿", "سوار": "📿", "خاتم": "💍", "حلق": "💎", "مرآة": "🪞",
-    "عطر": "🌸", "كولونيا": "🌸", "مكياج": "💄", "أحمر شفاه": "💋", "ملمع شفاه": "💋",
-    "كريم أساس": "💄", "ماسكارا": "👁️", "آيلاينر": "👁️", "ظل عيون": "👁️",
-    "بلاشر": "🌸", "هايلايتر": "✨", "كونسيلر": "💄", "برايمر": "💄",
-    "مثبت مكياج": "💨", "كريم": "🧴", "لوشن": "🧴", "سيروم": "🧴", "تونر": "🧴",
-    "مرطب": "🧴", "واقي شمس": "☀️", "شامبو": "🧴", "بلسم": "🧴", "ماسك": "🧖‍♀️",
-    "صابون": "🧼", "فرشاة": "🖌️",
+    "باليرينا": "🥿", "بوت": "👢", "شبشب": "🩴", "شنطة": "👜", "شنطة يد": "👜", 
+    "شنطة ظهر": "🎒", "توت باج": "🛍️", "كلتش": "👝", "كروس بودي": "👜", "محفظة": "👛", 
+    "نظارة شمسية": "🕶️", "ساعة": "⌚", "مجوهرات": "💎", "عقد": "📿", "حلق": "💎", 
+    "عطر": "🌸", "مكياج": "💄", "أحمر شفاه": "💋", "كريم": "🧴", "مرطب": "🧴"
 }
 
 
@@ -178,64 +147,20 @@ def extract_quantity(title):
         m = re.search(pat, t)
         if m:
             n = int(m.group(1))
-            if n == 1:
-                return None
-            elif n == 2:
-                return "من قطعتين"
-            else:
-                return f"من {n} قطع"
+            if n > 1:
+                return f"{n} قطع"
     if re.search(r'\b(?:set|pack|bundle)\b', t):
-        return "طقم كامل"
+        return "طقم"
     return None
 
 
-def detect_gender(title, main_type=""):
+def detect_gender(title):
     t = title.lower()
-    
-    female = ["women", "woman", "ladies", "lady", "female", "womens", "women's",
-              "girl's", "girls'", "dress", "skirt", "blouse", "heels", "handbag",
-              "blush", "lipstick", "gown", "frock", "tights", "leggings", "bodysuit",
-              "romper", "jumpsuit", "cardigan", "clutch", "tote", "crossbody",
-              "earrings", "necklace", "bracelet", "maxi", "midi", "mini", "bra",
-              "pajamas", "pyjamas", "nightwear", "lingerie"]
-    male = ["men", "man", "male", "mens", "men's", "boy's", "boys'",
-            "suit", "tuxedo", "chinos", "oxfords", "loafers", "tie", "belt", "blazer"]
-    kids = ["kids", "children", "child", "baby", "toddler", "infant", "newborn"]
-    
-    def has_word(text, lst):
-        for w in lst:
-            if re.search(r'\b' + re.escape(w) + r'\b', text):
-                return True
-        return False
-    
-    has_f = has_word(t, female)
-    has_m = has_word(t, male)
-    has_k = has_word(t, kids)
-    
-    if has_k:
-        if has_f and not has_m:
-            return "بناتي"
-        if has_m and not has_f:
-            return "ولادي"
+    if any(w in t for w in ["kids", "children", "child", "baby", "toddler", "infant", "girls'", "boy's"]):
         return "أطفال"
-    
-    female_only = {"فستان", "فستان سهرة", "بلوزة", "تنورة", "كعب عالي", "كعب",
-                   "باليرينا", "شنطة يد", "كلتش", "توت باج", "كروس بودي", "بلاشر",
-                   "أحمر شفاه", "ملمع شفاه", "ماسكارا", "آيلاينر", "ظل عيون", "هايلايتر",
-                   "كونسيلر", "برايمر", "مثبت مكياج", "رومبر", "بدي", "جمبسوت",
-                   "بيجاما", "لبس نوم", "لانجري", "صدرية", "ملابس داخلية"}
-    male_only = {"ربطة عنق", "بليزر", "أوكسفورد", "لوفر"}
-    
-    if main_type in female_only:
-        return "نسائي"
-    if main_type in male_only:
+    if any(w in t for w in ["men", "man", "male", "mens", "men's", "boys'"]):
         return "رجالي"
-    
-    if has_f and not has_m:
-        return "نسائي"
-    if has_m and not has_f:
-        return "رجالي"
-    return "نسائي"  # الافتراضي لشي إن غالباً نسائي
+    return "نسائي"
 
 
 def extract_keywords(title):
@@ -251,21 +176,10 @@ def extract_keywords(title):
         if words[i] in SKIP_WORDS:
             i += 1
             continue
-        if i + 2 < len(words):
-            three = f"{words[i]} {words[i+1]} {words[i+2]}"
-            if three in WORDS:
-                found.append(WORDS[three])
-                i += 3
-                continue
         if i + 1 < len(words):
             two = f"{words[i]} {words[i+1]}"
             if two in WORDS:
                 found.append(WORDS[two])
-                i += 2
-                continue
-            two_dash = f"{words[i]}-{words[i+1]}"
-            if two_dash in WORDS:
-                found.append(WORDS[two_dash])
                 i += 2
                 continue
         w = words[i]
@@ -276,78 +190,54 @@ def extract_keywords(title):
 
 
 def build_description(title):
-    """بناء وصف جذاب وتسويقي حماسي مع القوالب المتنوعة"""
     kw = extract_keywords(title)
     
     types = [k for k in kw if k in TYPE_SET]
     colors = [k for k in kw if k in COLOR_SET]
     materials = [k for k in kw if k in MATERIAL_SET]
-    fits = [k for k in kw if k in FIT_SET]
-    necks = [k for k in kw if k in NECK_SET]
-    sleeves = [k for k in kw if k in SLEEVE_SET]
-    details = [k for k in kw if k in DETAIL_SET]
     
     main_type = max(types, key=len) if types else "القطعة"
     quantity = extract_quantity(title)
-    gender = detect_gender(title, main_type)
+    gender = detect_gender(title)
     
     color = colors[0] if colors else ""
     material = materials[0] if materials else ""
-    fit = fits[0] if fits else ""
-    sleeve = sleeves[0] if sleeves else ""
-    detail = details[0] if details else ""
     emoji = EMOJI_MAP.get(main_type, "✨")
     
-    # تفاصيل إضافية مجمعة
-    extra_details = []
-    if quantity: extra_details.append(quantity)
-    if fit: extra_details.append(fit)
-    if material: extra_details.append(f"من خامة ال{material}")
-    if sleeve: extra_details.append(sleeve)
-    if detail: extra_details.append(detail)
+    # صفة المادة واللون لتكوين الجملة الصح
+    desc_elements = []
+    if quantity: desc_elements.append(f"({quantity})")
+    if color: desc_elements.append(f"لون {color}")
+    if material: desc_elements.append(f"خامة {material}")
     
-    detail_str = " ".join(extra_details)
+    detail_str = " - ".join(desc_elements)
     
-    # ─── صياغة العبارة حسب الفئة والجنس ───
-    if gender in ["بناتي", "ولادي", "أطفال"]:
-        templates = [
-            f"يا عيني شوفوا كوتة هذا الـ {main_type} للأطفال {emoji}! القماشة والشكل يجنن ومرة كيوت 💕",
-            f"شوفوا جمال {main_type} الأطفال هذا {emoji}! يجنن باللبس والأناقة لا توصف 👶✨",
-            f"يا ناس على الجمال! شوفوا {main_type} الأطفال كيف يجنن والديزاين خطير 🔥😍",
-        ]
+    # ─── نصوص قصيرة ومستهدفة ───
+    if gender == "أطفال":
+        phrase = f"يا عيني على الكيوت! شوفوا {main_type} الأطفال هذا يجنن باللبس 👶{emoji}"
     elif gender == "رجالي":
-        templates = [
-            f"شوفوا هذا الـ {main_type} الرجالي الرهيب {emoji}! خامة وقصة تفتح النفس ولا غلطة 🔥",
-            f"للشباب.. شوفوا {main_type} هذا كيف فخم ومرتب! النقشة والقشة بطلة 👌✨",
-            f"حق الشياكة! شوفوا هذا الـ {main_type} الرجالي الخرافة.. شياكة وأناقة لا تفوتكم 😎🔥",
-        ]
+        phrase = f"للشباب.. شوفوا {main_type} هذا ترتيب وشياكة لا تفوتكم 🔥{emoji}"
     else:  # نسائي
-        female_intros = [
-            f"يا بنات الحقوا على هذا الـ {main_type} اللي يجنن {emoji}! شوفوا اللون {color if color else 'والتفاصيل'} كيف طالع مش ممكن 😍✨",
-            f"بنات شوفوا الأناقة! {main_type} شيك ومرتب بشكل مو عادي {emoji} لازم يكون بعربتكم 🔥💖",
-            f"شوفوا الروعة يا بنات! {main_type} خيالي والتفاصيل تجنن، طلته تاخد العقل 😭كيووت 💕",
-            f"يا بنات شوفوا هذا الـ {main_type} العسل {emoji}! التفاصيل والقشّة تجنن والسعر بطل 🔥✨"
-        ]
-        templates = female_intros
-
-    selected_intro = random.choice(templates)
+        if main_type != "القطعة":
+            intros = [
+                f"يا بنات شوفوا هذا الـ {main_type} يجنن وأناقة مو عادية! 😍{emoji}",
+                f"بنات الحقوا على هذا الـ {main_type} خيالي باللبس وطلته تاخد العقل 💕{emoji}",
+                f"شوفوا الروعة يا بنات! {main_type} شيك ومرتب بشكل مو عادي 🔥{emoji}"
+            ]
+        else:
+            intros = [
+                f"يا بنات شوفوا هذه القطعة تجنن وأناقتها مو عادية! 😍✨",
+                f"بنات الحقوا على هذه القطعة خيالية باللبس وطلتها تاخد العقل 💕✨"
+            ]
+        phrase = random.choice(intros)
     
-    # إضافات إغراء للتسوق بدون ذكر سعر
-    closings = [
-        "شوفوا الخصم والشكل الرهيب، الحقوا عليه قبل ينفد! 🛒🔥",
-        "القطعة بطلة وبتاخد العقل، لا تفوتكم بالطلب! 🛍️✨",
-        "السعر والجمال خيالي، اطلبوه الحين وانتوا مغمضين! 😍👏",
-        "شوفوا العرض الجبار عليه، يجنن لا يفوتكم! 💖🛒"
-    ]
-    selected_closing = random.choice(closings)
-    
-    # التجميع النهائي
-    final_text = f"{selected_intro}\n"
+    # البوست النهائي سطرين نظاف وبس
     if detail_str:
-        final_text += f"📌 التفاصيل: {detail_str}\n"
-    final_text += f"\n{selected_closing}"
-    
-    return re.sub(r' +', ' ', final_text).strip()
+        final_text = f"{phrase}\n📌 التفاصيل: {detail_str} ✨\n\nالحقوا عليه قبل ينفد! 🛒"
+    else:
+        final_text = f"{phrase}\n\nالحقوا عليه قبل ينفد! 🛒✨"
+        
+    return final_text
 
 
 def is_shein_url(url):
@@ -431,7 +321,7 @@ def handler(msg):
             bot.reply_to(msg, "❌ الرابط يجب أن يكون من shein.com")
             continue
 
-        wait = bot.reply_to(msg, "⏳ جاري استخراج الصورة والوصف...")
+        wait = bot.reply_to(msg, "⏳ جاري استخراج البيانات...")
 
         product = get_shein_product(original_url)
 
