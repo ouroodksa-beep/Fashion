@@ -52,27 +52,41 @@ def generate_caption_with_ai(product_title):
 
 def get_shein_product_with_browser(raw_url):
     """
-    فتـح الرابط باستخدام متصفح Chromium حقيقي لتجاوز الحماية وقراءة اسم المنتج والصورة
+    فتح الرابط بمتصفح متخفي لتجاوز حظر البوتات واستخراج البيانات
     """
     try:
         with sync_playwright() as p:
-            # تشغيل المتصفح في الخفاء
-            browser = p.chromium.launch(headless=True, args=['--no-sandbox', '--disable-setuid-sandbox'])
+            browser = p.chromium.launch(
+                headless=True,
+                args=[
+                    '--no-sandbox',
+                    '--disable-setuid-sandbox',
+                    '--disable-blink-features=AutomationControlled'
+                ]
+            )
             
-            # محاكاة متصفح آيفون لتخطي حظر الأجهزة
+            # إعدادات محاكاة متصفح آيفون حقيقي بدون بصمة بوت
             context = browser.new_context(
-                user_agent="Mozilla/5.0 (iPhone; CPU iPhone OS 16_6 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.6 Mobile/15E148 Safari/604.1",
-                viewport={'width': 390, 'height': 844},
-                locale="ar-SA"
+                user_agent="Mozilla/5.0 (iPhone; CPU iPhone OS 17_4 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.4 Mobile/15E148 Safari/604.1",
+                viewport={'width': 393, 'height': 852},
+                locale="ar-SA",
+                device_scale_factor=3,
+                is_mobile=True,
+                has_touch=True
             )
             
             page = context.new_page()
             
-            # الانتقال للرابط والانتظار حتى اكتمال التوجيه والتحميل
-            page.goto(raw_url, wait_until="domcontentloaded", timeout=30000)
-            page.wait_for_timeout(3000) # انتظار 3 ثوان لتأكيد تحميل عناصر الصفحة
+            # اخفاء متغيرات التشفير والتحكم الآلي
+            page.add_init_script("""
+                Object.defineProperty(navigator, 'webdriver', {get: () => undefined});
+            """)
+            
+            # فتح الرابط مع إعطاء وقت أطول للتوجيهات (OneLink)
+            page.goto(raw_url, wait_until="networkidle", timeout=45000)
+            page.wait_for_timeout(4000)
 
-            # استخراج اسم المنتج والصورة من الوسوم
+            # استخراج عنوان ورابط الصورة
             title = page.evaluate("""() => {
                 const metaOg = document.querySelector('meta[property="og:title"]') || document.querySelector('meta[name="twitter:title"]');
                 if (metaOg && metaOg.content) return metaOg.content;
@@ -87,7 +101,6 @@ def get_shein_product_with_browser(raw_url):
 
             browser.close()
 
-            # تنظيف العنوان
             if title:
                 title = re.sub(r"\s*\|\s*SHEIN.*$", "", title, flags=re.IGNORECASE).strip()
 
@@ -100,7 +113,7 @@ def get_shein_product_with_browser(raw_url):
                 return {"full_title": title, "image": image}
 
     except Exception as e:
-        print(f"Playwright Scraping Error: {e}")
+        print(f"Playwright Stealth Scraping Error: {e}")
 
     return None
 
@@ -115,7 +128,7 @@ def handler(msg):
         return
 
     for original_url in urls:
-        wait = bot.reply_to(msg, "⏳ جاري فتح الرابط بمتصفح آلي وقراءة تفاصيل القطعة...")
+        wait = bot.reply_to(msg, "⏳ جاري فتح الرابط بمتصفح متخفي وقراءة تفاصيل القطعة...")
 
         product = get_shein_product_with_browser(original_url)
 
