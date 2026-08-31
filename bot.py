@@ -30,7 +30,7 @@ def generate_caption_with_ai(product_title):
 
 المطلوب:
 1. اكتب منشورًا قصيرًا وجذابًا جدًا بالعامية السعودية/الخليجية العصرية بنفس أسلوب قنوات التليجرام (استخدم كلمات حماسية مثل: مرررره، يجننن، خيالي، تخدمكم، رايقة، مع إموجيات مناسبة).
-2. يجب أن يكون الكلام مطبقًا 100% على طبيعة المنتج (مثلاً: إذا كان مج أو كوب لا تتحدث عن اللبس بل عن القهوة والروقان، إذا كان مكياج تحدث عن النضارة والدمج، إذا كان فستان تحدث عن الكشخة والقصة).
+2. يجب أن يكون الكلام مطبقًا 100% على طبيعة المنتج (مثلاً: إذا كان مج أو كوب لا تتحدث عن اللبس بل عن القهوة والروقان، إذا كان مكياج تحدث عن النضارة، إذا كان فستان تحدث عن الكشخة والقصة).
 3. اكتب النص التسويقي المباشر بدون مقدمات أو شرح أو أسعار.
 4. اذكر التفاصيل (اللون/النوع/الخامة) بشكل دقيق بناءً على العنوان فقط بدون تأليف ألوان غير موجودة.
 
@@ -51,19 +51,42 @@ def generate_caption_with_ai(product_title):
     return "قطعة أنيقة وعصرية، شوفوا كامل التفاصيل في الرابط ✨"
 
 
-def get_shein_product(url):
+def unshorten_url(url):
     """
-    تجاوز حماية شي إن عبر ScraperAPI لاستخراج اسم المنتج وصورته
+    تتبع الرابط المختصر لجلب الرابط الحقيقي للمنتج
     """
-    if not SCRAPERAPI_KEY:
-        print("ScraperAPI key is missing!")
-        return None
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+    }
+    try:
+        res = requests.head(url, headers=headers, allow_redirects=True, timeout=10)
+        return res.url
+    except Exception:
+        try:
+            res = requests.get(url, headers=headers, allow_redirects=True, timeout=10)
+            return res.url
+        except Exception:
+            return url
 
-    # تحويل الطلب عبر ScraperAPI لتجاوز الحظر وتتبع التوجيه تلقائياً
-    api_url = f"http://api.scraperapi.com?api_key={SCRAPERAPI_KEY}&url={requests.utils.quote(url)}&render=true"
+
+def get_shein_product(raw_url):
+    """
+    فك الرابط ثم الكشط باستخدام ScraperAPI
+    """
+    # 1. تتبع فك التوجيه أولاً للحصول على رابط web كامل
+    final_url = unshorten_url(raw_url)
+    print(f"Final URL resolved: {final_url}")
+
+    # 2. إرسال الرابط النهائي إلى ScraperAPI بدون render=true لسحب البيانات مباشرة
+    api_url = f"http://api.scraperapi.com?api_key={SCRAPERAPI_KEY}&url={requests.utils.quote(final_url)}&keep_headers=true"
+
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        "Accept-Language": "ar-SA,ar;q=0.9,en-US;q=0.8,en;q=0.7"
+    }
 
     try:
-        r = requests.get(api_url, timeout=35)
+        r = requests.get(api_url, headers=headers, timeout=25)
         if r.status_code == 200:
             soup = BeautifulSoup(r.text, "html.parser")
 
@@ -89,7 +112,9 @@ def get_shein_product(url):
                 elif image.startswith("/"):
                     image = "https://www.shein.com" + image
 
-            if title:
+            if title and "SHEIN" not in title and len(title) > 3:
+                return {"full_title": title, "image": image}
+            elif title:
                 return {"full_title": title, "image": image}
 
     except Exception as e:
@@ -108,12 +133,12 @@ def handler(msg):
         return
 
     for original_url in urls:
-        wait = bot.reply_to(msg, "⏳ جاري قراءة المنتج وتحليله بالذكاء الاصطناعي...")
+        wait = bot.reply_to(msg, "⏳ جاري فك وتتبع الرابط وتحليل المنتج...")
 
         product = get_shein_product(original_url)
 
         if not product or not product.get("full_title"):
-            bot.edit_message_text("❌ تعذر قراءة عنوان المنتج، يرجى إعادة المحاولة.", msg.chat.id, wait.message_id)
+            bot.edit_message_text("❌ تعذر قراءة عنوان المنتج، يرجى التأكد من صحة الرابط.", msg.chat.id, wait.message_id)
             continue
 
         ai_caption = generate_caption_with_ai(product["full_title"])
