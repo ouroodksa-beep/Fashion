@@ -1,24 +1,19 @@
 import telebot
 import re
 import time
-import os
 import requests
 import json
 from bs4 import BeautifulSoup
 from flask import Flask, request
 
-# ─── التوكن ومفاتيح التشغيل ───
-TOKEN = os.environ.get("BOT_TOKEN", "8888709197:AAEVCTpVticEzi-NBaWRdIQDmKJSxdRzA54")
-GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "AIzaSyAD68JzBWieLXb9kE-7qOg-8p10_EkY518")
+# ─── المفاتيح المباشرة للتجربة ───
+TOKEN = "8888709197:AAEVCTpVticEzi-NBaWRdIQDmKJSxdRzA54"
+GEMINI_API_KEY = "AIzaSyAD68JzBWieLXb9kE-7qOg-8p10_EkY518"
 
 bot = telebot.TeleBot(TOKEN)
 
 
 def generate_caption_with_ai(product_title):
-    if not GEMINI_API_KEY:
-        print("Gemini Error: API Key is missing!")
-        return None
-
     prompt = f"""
 أنتِ خبيرة تسويق محترفة لقناة صيدات وعروض في التليجرام تسوق لمنتجات شي إن (SHEIN).
 قم بقراءة عنوان المنتج التالي المأخوذ من الموقع، وتعرف على نوعه والجمهور المستهدف تلقائياً:
@@ -34,8 +29,7 @@ def generate_caption_with_ai(product_title):
 3. لا تكتب أي مقدمات أو شرح، ولا تذكر الأسعار أو الكود، اكتب النص التسويقي النهائي مباشرة مع إيموجيز مناسبة للقطعة.
 """
 
-    # استخدام الموديل المستقر المعتمد gemini-1.5-flash
-    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={GEMINI_API_KEY}"
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={GEMINI_API_KEY}"
     payload = {
         "contents": [
             {
@@ -145,8 +139,7 @@ def handler(msg):
 
         if not ai_caption:
             bot.edit_message_text(
-                "❌ **حدث خطأ في الاتصال بالذكاء الاصطناعي.**\n\n"
-                "تأكدي من صحة مفتاح GEMINI_API_KEY في إعدادات المنصة (Environment Variables).", 
+                "❌ **حدث خطأ في استجابة الذكاء الاصطناعي.**", 
                 msg.chat.id, 
                 wait.message_id,
                 parse_mode="Markdown"
@@ -169,9 +162,7 @@ def handler(msg):
 # ─── Flask & Webhook Setup ───
 app = Flask(__name__)
 
-WEBHOOK_HOST = os.environ.get("RENDER_EXTERNAL_HOSTNAME")
-WEBHOOK_PORT = int(os.environ.get("PORT", 10000))
-WEBHOOK_URL_BASE = f"https://{WEBHOOK_HOST}" if WEBHOOK_HOST else None
+PORT = 10000
 WEBHOOK_URL_PATH = f"/webhook/{TOKEN}"
 
 @app.route("/")
@@ -193,13 +184,5 @@ def webhook():
     else:
         return "Unsupported Media Type", 415
 
-def start_webhook():
-    if WEBHOOK_HOST:
-        bot.remove_webhook()
-        time.sleep(0.5)
-        bot.set_webhook(url=WEBHOOK_URL_BASE + WEBHOOK_URL_PATH)
-
-    app.run(host="0.0.0.0", port=WEBHOOK_PORT)
-
 if __name__ == "__main__":
-    start_webhook()
+    app.run(host="0.0.0.0", port=PORT)
