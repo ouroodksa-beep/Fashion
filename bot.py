@@ -17,7 +17,7 @@ bot = telebot.TeleBot(TOKEN)
 
 def generate_caption_with_ai(product_title):
     if not GEMINI_API_KEY:
-        return "قطعة مميزة وجذابة، التفاصيل الكاملة بالرابط ✨"
+        return "قطعة مميزة وجذابة، التفاصيل بالرابط ✨"
 
     prompt = f"""
 أنتِ خبيرة تسويق محترفة لقناة صيدات وعروض في التليجرام تسوق لمنتجات شي إن (SHEIN).
@@ -29,7 +29,7 @@ def generate_caption_with_ai(product_title):
 1. حلل نوع المنتج (نسائي/بناتي، رجالي، أطفال، أو مستلزمات منزلية).
 2. اكتب منشوراً تسويقياً قصيراً ومؤثراً بالعامية السعودية/الخليجية وفقاً للأسلوب التالي:
    - إذا كان المنتج **نسائي أو بناتي**: استخدم أسلوباً راقياً، أنيقاً، وجذاباً يركز على الأناقة والتفاصيل (مثل: تجنن، كشخة، قماشها يفتح النفس، لطيفة باللبس).
-   - إذا كان المنتج **رجالي**: استخدم أسلوباً مباشراً، عملياً، وموجهاً للرجال (مثل: فخمة ومريحة، مرتبة للإطلالة اليومية، خامة ممتازة، كشخة).
+   - إذا كان المنتج **رجالي**: استخدم أسلوباً مباشراً، عملياً، وموجهاً للرجال (مثل: فخمة ومريحة، مرتبة للإطلالة اليومية، خامة ممتازة).
    - إذا كان **أطفال أو مستلزمات**: استخدم أسلوباً لطيفاً ومحفزاً للأمهات.
 3. لا تكتب أي مقدمات أو شرح، ولا تذكر الأسعار أو الكود، اكتب النص التسويقي النهائي مباشرة مع إيموجيز مناسبة للقطعة.
 """
@@ -45,66 +45,61 @@ def generate_caption_with_ai(product_title):
     except Exception as e:
         print(f"Gemini Exception: {e}")
 
-    return "قطعة مميزة وجذابة، شوفوا كامل التفاصيل في الرابط ✨"
-
-
-def resolve_final_url(url):
-    """
-    تتبع التحويلات لفك روابط onelink والوصول للرابط المباشر
-    """
-    try:
-        headers = {
-            "User-Agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 16_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.0 Mobile/15E148 Safari/604.1"
-        }
-        res = requests.get(url, headers=headers, allow_redirects=True, timeout=12)
-        return res.url
-    except Exception as e:
-        print(f"Redirect error: {e}")
-        return url
+    return "قطعة أنيقة وعصرية، شوفوا كامل التفاصيل في الرابط ✨"
 
 
 def get_shein_product(raw_url):
     """
-    جلب بيانات المنتج بعد فك الروجيه واستخراج الميتا داتا
+    تتبع رابط onelink برمجياً لجلب الاسم والصورة الحقيقية دون الاعتماد على كشط الصفحة المعقد
     """
-    final_url = resolve_final_url(raw_url)
-    api_url = f"http://api.scraperapi.com?api_key={SCRAPERAPI_KEY}&url={requests.utils.quote(final_url)}&render=true&country_code=us"
+    headers = {
+        "User-Agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 16_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.5 Mobile/15E148 Safari/604.1"
+    }
 
     try:
-        r = requests.get(api_url, timeout=40)
-        if r.status_code == 200:
-            soup = BeautifulSoup(r.text, "html.parser")
-            title = None
-            image = None
+        # 1. جلب التوجيه النهائي للرابط
+        res = requests.get(raw_url, headers=headers, allow_redirects=True, timeout=12)
+        final_url = res.url
 
-            # البحث عن العنوان في وسوم الميتا المختلفة
-            for selector in ['meta[property="og:title"]', 'meta[name="twitter:title"]', 'title']:
-                tag = soup.select_one(selector)
-                if tag:
-                    content = tag.get("content") or tag.text
-                    if content and len(content.strip()) > 5:
-                        title = content.strip()
-                        break
+        # 2. إذا نجح تتبع الرابط، استخراج الميتا داتا مباشر
+        soup = BeautifulSoup(res.text, "html.parser")
+        
+        title = None
+        image = None
 
-            # البحث عن الصورة
-            for img_selector in ['meta[property="og:image"]', 'meta[name="twitter:image"]']:
-                img_tag = soup.select_one(img_selector)
-                if img_tag and img_tag.get("content"):
-                    image = img_tag["content"].strip()
-                    break
+        og_title = soup.select_one('meta[property="og:title"]') or soup.select_one('meta[name="twitter:title"]') or soup.select_one('title')
+        if og_title:
+            title = og_title.get("content") or og_title.text
 
-            if title:
-                # تنظيف اسم المنتج من العبارات الزائدة
-                title = re.sub(r"\s*\|\s*SHEIN.*$", "", title, flags=re.IGNORECASE).strip()
-                title = re.sub(r"SHEIN\s*", "", title, flags=re.IGNORECASE).strip()
+        og_image = soup.select_one('meta[property="og:image"]') or soup.select_one('meta[name="twitter:image"]')
+        if og_image and og_image.get("content"):
+            image = og_image["content"].strip()
 
-            if image and image.startswith("//"):
-                image = "https:" + image
+        # 3. إذا حُظر الطلب المباشر، استخدام ScraperAPI بدون render لتسريع الاستجابة وتفادي البلوك
+        if not title or "SHEIN" in title and len(title) < 15:
+            api_url = f"http://api.scraperapi.com?api_key={SCRAPERAPI_KEY}&url={requests.utils.quote(final_url)}"
+            r = requests.get(api_url, timeout=25)
+            if r.status_code == 200:
+                soup = BeautifulSoup(r.text, "html.parser")
+                og_title = soup.select_one('meta[property="og:title"]') or soup.select_one('title')
+                if og_title:
+                    title = og_title.get("content") or og_title.text
+                og_image = soup.select_one('meta[property="og:image"]')
+                if og_image and og_image.get("content"):
+                    image = og_image["content"].strip()
 
-            if title and len(title) > 3:
-                return {"full_title": title, "image": image}
+        if title:
+            title = re.sub(r"\s*\|\s*SHEIN.*$", "", title, flags=re.IGNORECASE).strip()
+            title = re.sub(r"^SHEIN\s*", "", title, flags=re.IGNORECASE).strip()
+
+        if image and image.startswith("//"):
+            image = "https:" + image
+
+        if title and len(title) > 3:
+            return {"full_title": title, "image": image}
+
     except Exception as e:
-        print(f"Scraper Error: {e}")
+        print(f"Extraction Error: {e}")
 
     return None
 
@@ -119,42 +114,29 @@ def handler(msg):
         return
 
     for original_url in urls:
-        # معرفة ما إذا كانت الرسالة تحتوي على اسم للمنتج بجانب الرابط
-        user_custom_title = text.replace(original_url, "").strip()
+        wait = bot.reply_to(msg, "⏳ جاري تحليل الرابط واستخراج تفاصيل القطعة...")
 
-        wait = bot.reply_to(msg, "⏳ جاري تحليل القطعة وتجهيز المنشور...")
+        # 1. استخراج بيانات المنتج من الرابط نفسه
+        product = get_shein_product(original_url)
 
-        product_title = None
-        product_image = None
-
-        # 1. إذا كتبتِ اسم القطعة بنفسك نعتمد عليه فوراً
-        if user_custom_title and len(user_custom_title) > 2:
-            product_title = user_custom_title
-        else:
-            # 2. وإلا يحاول البوت استخراجه تلقائياً
-            product = get_shein_product(original_url)
-            if product:
-                product_title = product.get("full_title")
-                product_image = product.get("image")
-
-        if not product_title:
+        if not product or not product.get("full_title"):
             bot.edit_message_text(
-                "❌ تعذر قراءة عنوان القطعة من رابط onelink تلقائياً.\n\n"
-                "💡 **حل سريع:** يرجى كتابة اسم القطعة مع الرابط في نفس الرسالة\n"
-                "مثال: `فستان أسود أنيق https://onelink.shein.com/...`",
-                msg.chat.id,
-                wait.message_id,
-                parse_mode="Markdown"
+                "❌ تعذر قراءة عنوان هذه القطعة تلقائياً من سيرفر شي إن.\n"
+                "تأكدي من صحة الرابط وأعيدي إرساله.",
+                msg.chat.id, 
+                wait.message_id
             )
             continue
 
-        # 3. صياغة الإعلان بالذكاء الاصطناعي
-        ai_caption = generate_caption_with_ai(product_title)
+        # 2. إنشاء الوصف عبر الذكاء الاصطناعي بناءً على العنوان المستخرج
+        ai_caption = generate_caption_with_ai(product["full_title"])
+        
+        # 3. طباعة المنشور النهائي مع رابط الأفلييت الخاص بكِ دون تغيير حرف واحد فيه
         post = f"{ai_caption}\n\n🔗 {original_url}"
 
         try:
-            if product_image:
-                bot.send_photo(msg.chat.id, product_image, caption=post)
+            if product.get("image"):
+                bot.send_photo(msg.chat.id, product["image"], caption=post)
             else:
                 bot.send_message(msg.chat.id, post)
             bot.delete_message(msg.chat.id, wait.message_id)
