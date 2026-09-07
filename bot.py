@@ -50,51 +50,51 @@ def generate_caption_with_ai(product_title):
 
 def resolve_final_url(url):
     """
-    تتبع رابط onelink للوصول إلى رابط شي إن النهائي المباشر
+    تتبع التحويلات لفك روابط onelink والوصول للرابط المباشر
     """
     try:
-        session = requests.Session()
-        session.headers.update({
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/110.0.0.0 Safari/537.36"
-        })
-        res = session.head(url, allow_redirects=True, timeout=10)
+        headers = {
+            "User-Agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 16_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.0 Mobile/15E148 Safari/604.1"
+        }
+        res = requests.get(url, headers=headers, allow_redirects=True, timeout=12)
         return res.url
-    except Exception:
+    except Exception as e:
+        print(f"Redirect error: {e}")
         return url
 
 
 def get_shein_product(raw_url):
     """
-    جلب عنوان المنتج وصورته بفك الروابط المختصرة واستخراج الميتا داتا بأكثر من وسيلة
+    جلب بيانات المنتج بعد فك الروجيه واستخراج الميتا داتا
     """
-    # 1. تتبع التحويل للوصول للرابط الأصلي
     final_url = resolve_final_url(raw_url)
-    
-    # 2. قراءة الرابط عبر ScraperAPI
-    api_url = f"http://api.scraperapi.com?api_key={SCRAPERAPI_KEY}&url={requests.utils.quote(final_url)}&render=true"
+    api_url = f"http://api.scraperapi.com?api_key={SCRAPERAPI_KEY}&url={requests.utils.quote(final_url)}&render=true&country_code=us"
 
     try:
-        r = requests.get(api_url, timeout=35)
+        r = requests.get(api_url, timeout=40)
         if r.status_code == 200:
             soup = BeautifulSoup(r.text, "html.parser")
             title = None
             image = None
 
-            # محاولة جلب العنوان من الوسوم المختلفة
-            og_title = (soup.select_one('meta[property="og:title"]') or 
-                        soup.select_one('meta[name="twitter:title"]') or 
-                        soup.select_one('title'))
-            
-            if og_title:
-                title = og_title.get("content") or og_title.text
+            # البحث عن العنوان في وسوم الميتا المختلفة
+            for selector in ['meta[property="og:title"]', 'meta[name="twitter:title"]', 'title']:
+                tag = soup.select_one(selector)
+                if tag:
+                    content = tag.get("content") or tag.text
+                    if content and len(content.strip()) > 5:
+                        title = content.strip()
+                        break
 
-            # محاولة جلب الصورة
-            og_image = soup.select_one('meta[property="og:image"]') or soup.select_one('meta[name="twitter:image"]')
-            if og_image and og_image.get("content"):
-                image = og_image["content"].strip()
+            # البحث عن الصورة
+            for img_selector in ['meta[property="og:image"]', 'meta[name="twitter:image"]']:
+                img_tag = soup.select_one(img_selector)
+                if img_tag and img_tag.get("content"):
+                    image = img_tag["content"].strip()
+                    break
 
             if title:
-                # تنظيف العنوان من الكلمات الزائدة
+                # تنظيف اسم المنتج من العبارات الزائدة
                 title = re.sub(r"\s*\|\s*SHEIN.*$", "", title, flags=re.IGNORECASE).strip()
                 title = re.sub(r"SHEIN\s*", "", title, flags=re.IGNORECASE).strip()
 
@@ -119,24 +119,42 @@ def handler(msg):
         return
 
     for original_url in urls:
-        wait = bot.reply_to(msg, "⏳ جاري قراءة القطعة وتحليل تفاصيلها...")
+        # معرفة ما إذا كانت الرسالة تحتوي على اسم للمنتج بجانب الرابط
+        user_custom_title = text.replace(original_url, "").strip()
 
-        # 1. جلب بيانات القطعة
-        product = get_shein_product(original_url)
+        wait = bot.reply_to(msg, "⏳ جاري تحليل القطعة وتجهيز المنشور...")
 
-        if not product or not product.get("full_title"):
-            bot.edit_message_text("❌ تعذر قراءة عنوان هذه القطعة من رابط onelink تلقائياً. يُفضل نسخ رابط القطعة المباشر من المتصفح.", msg.chat.id, wait.message_id)
+        product_title = None
+        product_image = None
+
+        # 1. إذا كتبتِ اسم القطعة بنفسك نعتمد عليه فوراً
+        if user_custom_title and len(user_custom_title) > 2:
+            product_title = user_custom_title
+        else:
+            # 2. وإلا يحاول البوت استخراجه تلقائياً
+            product = get_shein_product(original_url)
+            if product:
+                product_title = product.get("full_title")
+                product_image = product.get("image")
+
+        if not product_title:
+            bot.edit_message_text(
+                "❌ تعذر قراءة عنوان القطعة من رابط onelink تلقائياً.\n\n"
+                "💡 **حل سريع:** يرجى كتابة اسم القطعة مع الرابط في نفس الرسالة\n"
+                "مثال: `فستان أسود أنيق https://onelink.shein.com/...`",
+                msg.chat.id,
+                wait.message_id,
+                parse_mode="Markdown"
+            )
             continue
 
-        # 2. صياغة النص المخصص بالذكاء الاصطناعي
-        ai_caption = generate_caption_with_ai(product["full_title"])
-        
-        # 3. إعداد المنشور وإرساله
+        # 3. صياغة الإعلان بالذكاء الاصطناعي
+        ai_caption = generate_caption_with_ai(product_title)
         post = f"{ai_caption}\n\n🔗 {original_url}"
 
         try:
-            if product.get("image"):
-                bot.send_photo(msg.chat.id, product["image"], caption=post)
+            if product_image:
+                bot.send_photo(msg.chat.id, product_image, caption=post)
             else:
                 bot.send_message(msg.chat.id, post)
             bot.delete_message(msg.chat.id, wait.message_id)
