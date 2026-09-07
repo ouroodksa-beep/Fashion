@@ -6,7 +6,7 @@ import json
 from bs4 import BeautifulSoup
 from flask import Flask, request
 
-# ─── المفاتيح المباشرة للتجربة ───
+# ─── المفاتيح المباشرة والتأكيد ───
 TOKEN = "8888709197:AAEVCTpVticEzi-NBaWRdIQDmKJSxdRzA54"
 GEMINI_API_KEY = "AIzaSyAD68JzBWieLXb9kE-7qOg-8p10_EkY518"
 
@@ -29,7 +29,8 @@ def generate_caption_with_ai(product_title):
 3. لا تكتب أي مقدمات أو شرح، ولا تذكر الأسعار أو الكود، اكتب النص التسويقي النهائي مباشرة مع إيموجيز مناسبة للقطعة.
 """
 
-    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={GEMINI_API_KEY}"
+    # تصحيح اسم الموديل إلى الإصدار المستقر المعتمد gemini-1.5-flash
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={GEMINI_API_KEY}"
     payload = {
         "contents": [
             {
