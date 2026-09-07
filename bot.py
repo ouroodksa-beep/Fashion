@@ -10,7 +10,6 @@ from flask import Flask, request
 # ─── التوكن ومفاتيح التشغيل ───
 TOKEN = os.environ.get("BOT_TOKEN", "8888709197:AAEVCTpVticEzi-NBaWRdIQDmKJSxdRzA54")
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "AIzaSyAD68JzBWieLXb9kE-7qOg-8p10_EkY518")
-SCRAPERAPI_KEY = os.environ.get("SCRAPERAPI_KEY", "fb7742b2e62f3699d5059eea890268dd")
 
 bot = telebot.TeleBot(TOKEN)
 
@@ -50,43 +49,38 @@ def generate_caption_with_ai(product_title):
 
 def get_shein_product(raw_url):
     """
-    تتبع رابط onelink برمجياً لجلب الاسم والصورة الحقيقية دون الاعتماد على كشط الصفحة المعقد
+    استخراج بيانات القطعة عبر محاكاة متصفح الموبايل الحقيقي وتتبع التوجيه المباشر
     """
+    session = requests.Session()
     headers = {
-        "User-Agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 16_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.5 Mobile/15E148 Safari/604.1"
+        "User-Agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1",
+        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+        "Accept-Language": "ar-SA,ar;q=0.9",
     }
 
     try:
-        # 1. جلب التوجيه النهائي للرابط
-        res = requests.get(raw_url, headers=headers, allow_redirects=True, timeout=12)
-        final_url = res.url
-
-        # 2. إذا نجح تتبع الرابط، استخراج الميتا داتا مباشر
+        # 1. تتبع رابط onelink للوصول إلى الصفحة النهائية
+        res = session.get(raw_url, headers=headers, allow_redirects=True, timeout=15)
         soup = BeautifulSoup(res.text, "html.parser")
-        
+
         title = None
         image = None
 
-        og_title = soup.select_one('meta[property="og:title"]') or soup.select_one('meta[name="twitter:title"]') or soup.select_one('title')
-        if og_title:
-            title = og_title.get("content") or og_title.text
+        # 2. البحث عن العنوان في وسوم OG و HTML
+        for selector in ['meta[property="og:title"]', 'meta[name="twitter:title"]', 'title']:
+            tag = soup.select_one(selector)
+            if tag:
+                content = tag.get("content") or tag.text
+                if content and len(content.strip()) > 5:
+                    title = content.strip()
+                    break
 
-        og_image = soup.select_one('meta[property="og:image"]') or soup.select_one('meta[name="twitter:image"]')
-        if og_image and og_image.get("content"):
-            image = og_image["content"].strip()
-
-        # 3. إذا حُظر الطلب المباشر، استخدام ScraperAPI بدون render لتسريع الاستجابة وتفادي البلوك
-        if not title or "SHEIN" in title and len(title) < 15:
-            api_url = f"http://api.scraperapi.com?api_key={SCRAPERAPI_KEY}&url={requests.utils.quote(final_url)}"
-            r = requests.get(api_url, timeout=25)
-            if r.status_code == 200:
-                soup = BeautifulSoup(r.text, "html.parser")
-                og_title = soup.select_one('meta[property="og:title"]') or soup.select_one('title')
-                if og_title:
-                    title = og_title.get("content") or og_title.text
-                og_image = soup.select_one('meta[property="og:image"]')
-                if og_image and og_image.get("content"):
-                    image = og_image["content"].strip()
+        # 3. البحث عن الصورة
+        for img_selector in ['meta[property="og:image"]', 'meta[name="twitter:image"]']:
+            img_tag = soup.select_one(img_selector)
+            if img_tag and img_tag.get("content"):
+                image = img_tag["content"].strip()
+                break
 
         if title:
             title = re.sub(r"\s*\|\s*SHEIN.*$", "", title, flags=re.IGNORECASE).strip()
@@ -95,7 +89,7 @@ def get_shein_product(raw_url):
         if image and image.startswith("//"):
             image = "https:" + image
 
-        if title and len(title) > 3:
+        if title and "SHEIN" not in title and len(title) > 3:
             return {"full_title": title, "image": image}
 
     except Exception as e:
@@ -114,24 +108,23 @@ def handler(msg):
         return
 
     for original_url in urls:
-        wait = bot.reply_to(msg, "⏳ جاري تحليل الرابط واستخراج تفاصيل القطعة...")
+        wait = bot.reply_to(msg, "⏳ جاري تحليل القطعة وصياغة المنشور...")
 
-        # 1. استخراج بيانات المنتج من الرابط نفسه
+        # 1. جلب بيانات القطعة تلقائياً بدون تغيير الرابط
         product = get_shein_product(original_url)
 
         if not product or not product.get("full_title"):
             bot.edit_message_text(
-                "❌ تعذر قراءة عنوان هذه القطعة تلقائياً من سيرفر شي إن.\n"
-                "تأكدي من صحة الرابط وأعيدي إرساله.",
+                "❌ تعذر استخراج تفاصيل القطعة تلقائياً من شي إن بسبب قيود الحماية الحالية على رابط onelink.",
                 msg.chat.id, 
                 wait.message_id
             )
             continue
 
-        # 2. إنشاء الوصف عبر الذكاء الاصطناعي بناءً على العنوان المستخرج
+        # 2. صياغة النص بـ Gemini
         ai_caption = generate_caption_with_ai(product["full_title"])
         
-        # 3. طباعة المنشور النهائي مع رابط الأفلييت الخاص بكِ دون تغيير حرف واحد فيه
+        # 3. إرسال المنشور مع رابط الأفلييت كما هو
         post = f"{ai_caption}\n\n🔗 {original_url}"
 
         try:
