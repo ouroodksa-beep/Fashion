@@ -16,6 +16,7 @@ bot = telebot.TeleBot(TOKEN)
 
 def generate_caption_with_ai(product_title):
     if not GEMINI_API_KEY:
+        print("Gemini Error: API Key is missing!")
         return None
 
     prompt = f"""
@@ -33,14 +34,25 @@ def generate_caption_with_ai(product_title):
 3. لا تكتب أي مقدمات أو شرح، ولا تذكر الأسعار أو الكود، اكتب النص التسويقي النهائي مباشرة مع إيموجيز مناسبة للقطعة.
 """
 
-    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={GEMINI_API_KEY}"
-    payload = {"contents": [{"parts": [{"text": prompt}]}]}
+    # استخدام الموديل المستقر المعتمد gemini-1.5-flash
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={GEMINI_API_KEY}"
+    payload = {
+        "contents": [
+            {
+                "parts": [
+                    {"text": prompt}
+                ]
+            }
+        ]
+    }
 
     try:
         response = requests.post(url, json=payload, headers={"Content-Type": "application/json"}, timeout=15)
         if response.status_code == 200:
             result = response.json()
             return result['candidates'][0]['content']['parts'][0]['text'].strip()
+        else:
+            print(f"Gemini API Error Status: {response.status_code}, Response: {response.text}")
     except Exception as e:
         print(f"Gemini Exception: {e}")
 
@@ -48,9 +60,6 @@ def generate_caption_with_ai(product_title):
 
 
 def get_shein_product(raw_url):
-    """
-    استخراج بيانات القطعة عبر فك الرابط والوصول إما للميتا داتا أو الـ API المباشر
-    """
     session = requests.Session()
     headers = {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
@@ -58,14 +67,12 @@ def get_shein_product(raw_url):
     }
 
     try:
-        # 1. تتبع الرابط للوصول للرابط النهائي
         res = session.get(raw_url, headers=headers, allow_redirects=True, timeout=12)
         final_url = res.url
         
         title = None
         image = None
 
-        # 2. محاولة القراءة من HTML الصفحة
         soup = BeautifulSoup(res.text, "html.parser")
         
         for selector in ['meta[property="og:title"]', 'meta[name="twitter:title"]', 'title']:
@@ -82,8 +89,7 @@ def get_shein_product(raw_url):
                 image = img_tag["content"].strip()
                 break
 
-        # 3. إذا فشلت الميتا داتا، محاولة استخراج رقم المنتج (goods_id) وقراءته مباشرة
-        if not title or "SHEIN" in title and len(title) < 15:
+        if not title or ("SHEIN" in title and len(title) < 15):
             goods_id_match = re.search(r"p-(\d+)|goods-(\d+)|id=(\d+)", final_url)
             if goods_id_match:
                 goods_id = next(g for g in goods_id_match.groups() if g)
@@ -123,27 +129,30 @@ def handler(msg):
     for original_url in urls:
         wait = bot.reply_to(msg, "⏳ جاري قراءة تفاصيل القطعة وصياغة الوصف الخاص بها...")
 
-        # 1. جلب بيانات القطعة
         product = get_shein_product(original_url)
 
         if not product or not product.get("full_title"):
             bot.edit_message_text(
                 "❌ **تعذر قراءة عنوان هذه القطعة تلقائياً.**\n\n"
-                "سيرفر شي إن يفرض حظراً على قراءة هذا الرابط حالياً. يرجى محاولة إرسال رابط آخر أو التأكد من الرابط.",
+                "سيرفر شي إن يفرض حظراً على قراءة هذا الرابط حالياً.",
                 msg.chat.id, 
                 wait.message_id,
                 parse_mode="Markdown"
             )
             continue
 
-        # 2. صياغة النص بـ Gemini
         ai_caption = generate_caption_with_ai(product["full_title"])
 
         if not ai_caption:
-            bot.edit_message_text("❌ حدث خطأ في الاتصال بالذكاء الاصطناعي لصياغة الوصف.", msg.chat.id, wait.message_id)
+            bot.edit_message_text(
+                "❌ **حدث خطأ في الاتصال بالذكاء الاصطناعي.**\n\n"
+                "تأكدي من صحة مفتاح GEMINI_API_KEY في إعدادات المنصة (Environment Variables).", 
+                msg.chat.id, 
+                wait.message_id,
+                parse_mode="Markdown"
+            )
             continue
 
-        # 3. إرسال المنشور المخصص مع رابط الأفلييت الخاص بكِ
         post = f"{ai_caption}\n\n🔗 {original_url}"
 
         try:
