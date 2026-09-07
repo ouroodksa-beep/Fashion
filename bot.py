@@ -16,7 +16,7 @@ bot = telebot.TeleBot(TOKEN)
 
 def generate_caption_with_ai(product_title):
     if not GEMINI_API_KEY:
-        return "قطعة مميزة وجذابة، التفاصيل بالرابط ✨"
+        return None
 
     prompt = f"""
 أنتِ خبيرة تسويق محترفة لقناة صيدات وعروض في التليجرام تسوق لمنتجات شي إن (SHEIN).
@@ -44,29 +44,30 @@ def generate_caption_with_ai(product_title):
     except Exception as e:
         print(f"Gemini Exception: {e}")
 
-    return "قطعة أنيقة وعصرية، شوفوا كامل التفاصيل في الرابط ✨"
+    return None
 
 
 def get_shein_product(raw_url):
     """
-    استخراج بيانات القطعة عبر محاكاة متصفح الموبايل الحقيقي وتتبع التوجيه المباشر
+    استخراج بيانات القطعة عبر فك الرابط والوصول إما للميتا داتا أو الـ API المباشر
     """
     session = requests.Session()
     headers = {
-        "User-Agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1",
-        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
-        "Accept-Language": "ar-SA,ar;q=0.9",
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
+        "Accept-Language": "ar-SA,ar;q=0.9,en-US;q=0.8,en;q=0.7"
     }
 
     try:
-        # 1. تتبع رابط onelink للوصول إلى الصفحة النهائية
-        res = session.get(raw_url, headers=headers, allow_redirects=True, timeout=15)
-        soup = BeautifulSoup(res.text, "html.parser")
-
+        # 1. تتبع الرابط للوصول للرابط النهائي
+        res = session.get(raw_url, headers=headers, allow_redirects=True, timeout=12)
+        final_url = res.url
+        
         title = None
         image = None
 
-        # 2. البحث عن العنوان في وسوم OG و HTML
+        # 2. محاولة القراءة من HTML الصفحة
+        soup = BeautifulSoup(res.text, "html.parser")
+        
         for selector in ['meta[property="og:title"]', 'meta[name="twitter:title"]', 'title']:
             tag = soup.select_one(selector)
             if tag:
@@ -75,12 +76,24 @@ def get_shein_product(raw_url):
                     title = content.strip()
                     break
 
-        # 3. البحث عن الصورة
         for img_selector in ['meta[property="og:image"]', 'meta[name="twitter:image"]']:
             img_tag = soup.select_one(img_selector)
             if img_tag and img_tag.get("content"):
                 image = img_tag["content"].strip()
                 break
+
+        # 3. إذا فشلت الميتا داتا، محاولة استخراج رقم المنتج (goods_id) وقراءته مباشرة
+        if not title or "SHEIN" in title and len(title) < 15:
+            goods_id_match = re.search(r"p-(\d+)|goods-(\d+)|id=(\d+)", final_url)
+            if goods_id_match:
+                goods_id = next(g for g in goods_id_match.groups() if g)
+                api_url = f"https://ar.shein.com/api/product/detail?goods_id={goods_id}"
+                api_res = session.get(api_url, headers=headers, timeout=10)
+                if api_res.status_code == 200:
+                    data = api_res.json()
+                    if "info" in data and "goods_name" in data["info"]:
+                        title = data["info"]["goods_name"]
+                        image = data["info"].get("goods_img")
 
         if title:
             title = re.sub(r"\s*\|\s*SHEIN.*$", "", title, flags=re.IGNORECASE).strip()
@@ -89,7 +102,7 @@ def get_shein_product(raw_url):
         if image and image.startswith("//"):
             image = "https:" + image
 
-        if title and "SHEIN" not in title and len(title) > 3:
+        if title and len(title) > 3:
             return {"full_title": title, "image": image}
 
     except Exception as e:
@@ -108,23 +121,29 @@ def handler(msg):
         return
 
     for original_url in urls:
-        wait = bot.reply_to(msg, "⏳ جاري تحليل القطعة وصياغة المنشور...")
+        wait = bot.reply_to(msg, "⏳ جاري قراءة تفاصيل القطعة وصياغة الوصف الخاص بها...")
 
-        # 1. جلب بيانات القطعة تلقائياً بدون تغيير الرابط
+        # 1. جلب بيانات القطعة
         product = get_shein_product(original_url)
 
         if not product or not product.get("full_title"):
             bot.edit_message_text(
-                "❌ تعذر استخراج تفاصيل القطعة تلقائياً من شي إن بسبب قيود الحماية الحالية على رابط onelink.",
+                "❌ **تعذر قراءة عنوان هذه القطعة تلقائياً.**\n\n"
+                "سيرفر شي إن يفرض حظراً على قراءة هذا الرابط حالياً. يرجى محاولة إرسال رابط آخر أو التأكد من الرابط.",
                 msg.chat.id, 
-                wait.message_id
+                wait.message_id,
+                parse_mode="Markdown"
             )
             continue
 
         # 2. صياغة النص بـ Gemini
         ai_caption = generate_caption_with_ai(product["full_title"])
-        
-        # 3. إرسال المنشور مع رابط الأفلييت كما هو
+
+        if not ai_caption:
+            bot.edit_message_text("❌ حدث خطأ في الاتصال بالذكاء الاصطناعي لصياغة الوصف.", msg.chat.id, wait.message_id)
+            continue
+
+        # 3. إرسال المنشور المخصص مع رابط الأفلييت الخاص بكِ
         post = f"{ai_caption}\n\n🔗 {original_url}"
 
         try:
