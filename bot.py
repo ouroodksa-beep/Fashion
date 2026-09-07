@@ -12,9 +12,6 @@ TOKEN = os.environ.get("BOT_TOKEN", "8888709197:AAEVCTpVticEzi-NBaWRdIQDmKJSxdRz
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "AIzaSyAD68JzBWieLXb9kE-7qOg-8p10_EkY518")
 SCRAPERAPI_KEY = os.environ.get("SCRAPERAPI_KEY", "fb7742b2e62f3699d5059eea890268dd")
 
-# كود العمولة الخاص بكِ ليتم إلحاقه تلقائياً بكل الروابط
-MY_AFFILIATE_PARAM = "ismg_ol=Dg3DA5Crnv1_01_KOC-C"
-
 bot = telebot.TeleBot(TOKEN)
 
 
@@ -23,14 +20,18 @@ def generate_caption_with_ai(product_title):
         return "قطعة تجننن وتفتح النفس! شوفوا التفاصيل بالرابط ✨💕"
 
     prompt = f"""
-أنتِ خبيرة تسويق وإعلانات لقناة تليجرام أنثوية مهتمة بالموضة والمنتجات.
-قم بقراءة عنوان المنتج التالي المأخوذ من موقع التسوق، وتعرف على نوعه بدقة:
+أنتِ خبيرة تسويق محترفة لقناة صيدات وعروض في التليجرام تسوق لمنتجات شي إن (SHEIN).
+قم بقراءة عنوان المنتج التالي المأخوذ من الموقع، وتعرف على نوعه والجمهور المستهدف تلقائياً:
 
 عنوان المنتج: "{product_title}"
 
 المطلوب:
-1. اكتب منشورًا قصيرًا وجذابًا جدًا بالعامية السعودية/الخليجية العصرية بنفس أسلوب قنوات التليجرام.
-2. اكتب النص التسويقي المباشر بدون مقدمات أو شرح أو أسعار.
+1. حلل نوع المنتج (نسائي/بناتي، رجالي، أطفال، أو مستلزمات منزلية).
+2. اكتب منشوراً تسويقياً قصيراً ومؤثراً بالعامية السعودية/الخليجية وفقاً للأسلوب التالي:
+   - إذا كان المنتج **نسائي أو بناتي**: استخدم أسلوباً راقياً، أنيقاً، وجذاباً يركز على الأناقة والتفاصيل (مثل: تجنن، كشخة، قماشها يفتح النفس، لطيفة باللبس).
+   - إذا كان المنتج **رجالي**: استخدم أسلوباً مباشراً، عملياً، وموجهاً للرجال (مثل: فخمة ومريحة، مرتبة للإطلالة اليومية، خامة ممتازة، كشخة).
+   - إذا كان **أطفال أو مستلزمات**: استخدم أسلوباً لطيفاً ومحفزاً للأمهات.
+3. لا تكتب أي مقدمات أو شرح، ولا تذكر الأسعار أو الكود، اكتب النص التسويقي النهائي مباشرة مع إيموجيز مناسبة للقطعة.
 """
 
     url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={GEMINI_API_KEY}"
@@ -47,20 +48,9 @@ def generate_caption_with_ai(product_title):
     return "قطعة أنيقة وعصرية، شوفوا كامل التفاصيل في الرابط ✨"
 
 
-def attach_affiliate_code(url):
-    """
-    دمج كود التتبع الخاص بكِ بالرابط النهائي لضمان احتساب العمولة
-    """
-    if "ismg_ol=" in url:
-        return url
-    
-    separator = "&" if "?" in url else "?"
-    return f"{url}{separator}{MY_AFFILIATE_PARAM}"
-
-
 def get_shein_product(raw_url):
     """
-    قراءة المنتج عبر ScraperAPI من الرابط المباشر
+    قراءة بيانات المنتج من شي إن عبر ScraperAPI
     """
     api_url = f"http://api.scraperapi.com?api_key={SCRAPERAPI_KEY}&url={requests.utils.quote(raw_url)}"
 
@@ -99,25 +89,24 @@ def handler(msg):
     urls = re.findall(r"https?://\S+", text)
 
     if not urls:
-        bot.reply_to(msg, "❌ يرجى إرسال رابط المنتج (سواء رابط عادي أو رابط أفيلييت)")
+        bot.reply_to(msg, "❌ يرجى إرسال رابط المنتج")
         return
 
     for original_url in urls:
-        wait = bot.reply_to(msg, "⏳ جاري تحليل القطعة وتجهيز رابط العمولة الخاص بكِ...")
+        wait = bot.reply_to(msg, "⏳ جاري قراءة القطعة وصياغة الوصف التسويقي...")
 
-        # 1. محاولة قراءة بيانات المنتج
+        # 1. جلب بيانات القطعة (العنوان والصورة)
         product = get_shein_product(original_url)
 
         if not product or not product.get("full_title"):
-            bot.edit_message_text("❌ لم نتمكن من قراءة العنوان تلقائياً من رابط onelink. يرجى إرسال رابط المنتج المباشر من المتصفح وسيقوم البوت بتحويله لرابط أفيلييت خاص بكِ تلقائياً.", msg.chat.id, wait.message_id)
+            bot.edit_message_text("❌ تعذر جلب تفاصيل القطعة تلقائياً، تأكدي من صحة الرابط أو جربي رابطاً مباشراً من المتصفح.", msg.chat.id, wait.message_id)
             continue
 
-        # 2. إنشاء رابط العمولة المضمون
-        affiliate_link = attach_affiliate_code(original_url)
-        
-        # 3. صياغة النص بالذكاء الاصطناعي
+        # 2. صياغة النص المناسب بالذكاء الاصطناعي
         ai_caption = generate_caption_with_ai(product["full_title"])
-        post = f"{ai_caption}\n\n🔗 {affiliate_link}"
+        
+        # 3. دمج الوصف مع الرابط الأصلي الذي أرسلتيه كما هو
+        post = f"{ai_caption}\n\n🔗 {original_url}"
 
         try:
             if product.get("image"):
