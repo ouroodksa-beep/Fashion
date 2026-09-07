@@ -6,20 +6,15 @@ import requests
 from bs4 import BeautifulSoup
 from flask import Flask, request
 import telebot
-import google.generativeai as genai
 
 # ─── الإعدادات والمفاتيح ───
 BOT_TOKEN = os.environ.get("BOT_TOKEN", "8888709197:AAEVCTpVticEzi-NBaWRdIQDmKJSxdRzA54")
-# تم وضع المفتاح الخاص بكِ هنا مباشرة
 GEMINI_KEY = os.environ.get("GEMINI_API_KEY", "AIzaSyAD68JzBWieLXb9kE-7qOg-8p10_EkY518")
 PROXY_URL = os.environ.get("PROXY_URL")
 
 bot = telebot.TeleBot(BOT_TOKEN)
 
-if GEMINI_KEY:
-    genai.configure(api_key=GEMINI_KEY)
-
-# ─── صياغة الوصف بالذكاء الاصطناعي (Gemini) ───
+# ─── صياغة الوصف بالذكاء الاصطناعي عبر API مباشر (بدون مكتبات إضافية) ───
 def generate_creative_description(title):
     if not GEMINI_KEY:
         return f"✨ {title}"
@@ -32,7 +27,7 @@ def generate_creative_description(title):
     المطلوب كتابة بوست تسويقي جذاب جداً ومحمس بالشروط التالية:
     1. اكتب باللهجة السعودية / الخليجية الممتعة والسلسة.
     2. لا ترص الكلام رص ولا تذكر المواصفات كقائمة جافة.
-    3. ابدأ بعبارة خاطفة ومحمسة تعبر عن شياكة المنتج وفخامته (مثل: كشخة، تجنن، قطة المأنتكة، خيال، كملي إطلالتك..).
+    3. ابدأ بعبارة خاطفة ومحمسة تعبر عن شياكة المنتج وفخامته (مثل: كشخة، تجنن، قطعة المأنتكة، خيال، كملي إطلالتك..).
     4. حدد نوع المنتج ولونه الأساسي بدقة وبدون أي تلخبط.
     5. ركز على إبراز جمال المنتج ودعوة المتابع للشراء قبل نفاذ الكمية أو انتهاء العرض.
     6. استخدم إيموجيز جذابة وفخمة تناسب نوع القطعة (مثل: 👜, ✨, 👗, 👠, 🤍, 🔥).
@@ -40,14 +35,26 @@ def generate_creative_description(title):
     8. أعطني النص النهائي الجاهز للنشر مباشرة بدون أي مقدمات أو شروحات.
     """
 
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={GEMINI_KEY}"
+    headers = {"Content-Type": "application/json"}
+    payload = {
+        "contents": [{
+            "parts": [{"text": prompt}]
+        }]
+    }
+
     try:
-        model = genai.GenerativeModel("gemini-1.5-flash")
-        response = model.generate_content(prompt)
-        desc = response.text.strip()
-        return desc
+        response = requests.post(url, headers=headers, json=payload, timeout=10)
+        if response.status_code == 200:
+            data = response.json()
+            desc = data["candidates"][0]["content"]["parts"][0]["text"].strip()
+            return desc
+        else:
+            print(f"Gemini API Error Status: {response.status_code}")
+            return "✨ قطعة كشخة وتصميم خيال لا تفوتكم!"
     except Exception as e:
-        print(f"Gemini API Error: {e}")
-        return "✨ قطة كشخة وتصميم خيال لا تفوتكم!"
+        print(f"Gemini API Exception: {e}")
+        return "✨ قطعة كشخة وتصميم خيال لا تفوتكم!"
 
 # ─── فحص روابط شي إن ───
 def is_shein_url(url):
@@ -143,7 +150,6 @@ def handler(msg):
             bot.edit_message_text("❌ تعذر قراءة بيانات المنتج، حاول مرة ثانية", msg.chat.id, wait.message_id)
             continue
 
-        # صياغة النص الذكي عبر Gemini
         marketing_desc = generate_creative_description(product["full_title"])
         post = f"{marketing_desc}\n\n🛒 **رابط الطلب المباشر:**\n{original_url}"
 
