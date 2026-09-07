@@ -17,7 +17,7 @@ bot = telebot.TeleBot(TOKEN)
 
 def generate_caption_with_ai(product_title):
     if not GEMINI_API_KEY:
-        return "قطعة تجننن وتفتح النفس! شوفوا التفاصيل بالرابط ✨💕"
+        return "قطعة مميزة وجذابة، التفاصيل الكاملة بالرابط ✨"
 
     prompt = f"""
 أنتِ خبيرة تسويق محترفة لقناة صيدات وعروض في التليجرام تسوق لمنتجات شي إن (SHEIN).
@@ -45,37 +45,63 @@ def generate_caption_with_ai(product_title):
     except Exception as e:
         print(f"Gemini Exception: {e}")
 
-    return "قطعة أنيقة وعصرية، شوفوا كامل التفاصيل في الرابط ✨"
+    return "قطعة مميزة وجذابة، شوفوا كامل التفاصيل في الرابط ✨"
+
+
+def resolve_final_url(url):
+    """
+    تتبع رابط onelink للوصول إلى رابط شي إن النهائي المباشر
+    """
+    try:
+        session = requests.Session()
+        session.headers.update({
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/110.0.0.0 Safari/537.36"
+        })
+        res = session.head(url, allow_redirects=True, timeout=10)
+        return res.url
+    except Exception:
+        return url
 
 
 def get_shein_product(raw_url):
     """
-    قراءة بيانات المنتج من شي إن عبر ScraperAPI
+    جلب عنوان المنتج وصورته بفك الروابط المختصرة واستخراج الميتا داتا بأكثر من وسيلة
     """
-    api_url = f"http://api.scraperapi.com?api_key={SCRAPERAPI_KEY}&url={requests.utils.quote(raw_url)}"
+    # 1. تتبع التحويل للوصول للرابط الأصلي
+    final_url = resolve_final_url(raw_url)
+    
+    # 2. قراءة الرابط عبر ScraperAPI
+    api_url = f"http://api.scraperapi.com?api_key={SCRAPERAPI_KEY}&url={requests.utils.quote(final_url)}&render=true"
 
     try:
-        r = requests.get(api_url, timeout=30)
+        r = requests.get(api_url, timeout=35)
         if r.status_code == 200:
             soup = BeautifulSoup(r.text, "html.parser")
             title = None
             image = None
 
-            og_title = soup.select_one('meta[property="og:title"]') or soup.select_one('meta[name="twitter:title"]')
-            if og_title and og_title.get("content"):
-                title = og_title["content"].strip()
+            # محاولة جلب العنوان من الوسوم المختلفة
+            og_title = (soup.select_one('meta[property="og:title"]') or 
+                        soup.select_one('meta[name="twitter:title"]') or 
+                        soup.select_one('title'))
+            
+            if og_title:
+                title = og_title.get("content") or og_title.text
 
+            # محاولة جلب الصورة
             og_image = soup.select_one('meta[property="og:image"]') or soup.select_one('meta[name="twitter:image"]')
             if og_image and og_image.get("content"):
                 image = og_image["content"].strip()
 
             if title:
+                # تنظيف العنوان من الكلمات الزائدة
                 title = re.sub(r"\s*\|\s*SHEIN.*$", "", title, flags=re.IGNORECASE).strip()
+                title = re.sub(r"SHEIN\s*", "", title, flags=re.IGNORECASE).strip()
 
             if image and image.startswith("//"):
                 image = "https:" + image
 
-            if title:
+            if title and len(title) > 3:
                 return {"full_title": title, "image": image}
     except Exception as e:
         print(f"Scraper Error: {e}")
@@ -93,19 +119,19 @@ def handler(msg):
         return
 
     for original_url in urls:
-        wait = bot.reply_to(msg, "⏳ جاري قراءة القطعة وصياغة الوصف التسويقي...")
+        wait = bot.reply_to(msg, "⏳ جاري قراءة القطعة وتحليل تفاصيلها...")
 
-        # 1. جلب بيانات القطعة (العنوان والصورة)
+        # 1. جلب بيانات القطعة
         product = get_shein_product(original_url)
 
         if not product or not product.get("full_title"):
-            bot.edit_message_text("❌ تعذر جلب تفاصيل القطعة تلقائياً، تأكدي من صحة الرابط أو جربي رابطاً مباشراً من المتصفح.", msg.chat.id, wait.message_id)
+            bot.edit_message_text("❌ تعذر قراءة عنوان هذه القطعة من رابط onelink تلقائياً. يُفضل نسخ رابط القطعة المباشر من المتصفح.", msg.chat.id, wait.message_id)
             continue
 
-        # 2. صياغة النص المناسب بالذكاء الاصطناعي
+        # 2. صياغة النص المخصص بالذكاء الاصطناعي
         ai_caption = generate_caption_with_ai(product["full_title"])
         
-        # 3. دمج الوصف مع الرابط الأصلي الذي أرسلتيه كما هو
+        # 3. إعداد المنشور وإرساله
         post = f"{ai_caption}\n\n🔗 {original_url}"
 
         try:
