@@ -8,7 +8,7 @@ from bs4 import BeautifulSoup
 from flask import Flask, request
 import telebot
 
-TOKEN = os.environ.get("BOT_TOKEN", "8888709197:AAEVCTpVticEzi-NBaWRdIQDmKJSxdRzA54")
+TOKEN = os.environ.get("BOT_TOKEN", "8888709197:AAG12FcVHESF-AOf-5SqU35iC115FLvbThY")
 bot = telebot.TeleBot(TOKEN)
 
 PROXY_URL = os.environ.get("PROXY_URL")
